@@ -1,0 +1,25 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Warehouse build artifacts (reproducible; never commit personal data)
+data/*.duckdb
+data/*.duckdb.wal
+data/raw/
+
+target/
+dbt_packages/
+logs/
+
+# OS / editor cruft
+.DS_Store
+**/.DS_Store
+.vscode/
+.user.yml

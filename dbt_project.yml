@@ -1,0 +1,8 @@
+name: 'compa_warehouse'
+version: '1.0.0'
+profile: 'compa_warehouse'
+model-paths: ["models"]
+models:
+  compa_warehouse:
+    staging:
+      +materialized: view

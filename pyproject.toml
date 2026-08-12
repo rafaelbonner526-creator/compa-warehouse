@@ -1,0 +1,13 @@
+[project]
+name = "compa-warehouse"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "dbt-duckdb>=1.11.0",
+    "dlt[duckdb]>=1.29.1",
+    "duckdb>=1.5.5",
+    "pandas>=3.0.5",
+    "pyarrow>=25.0.1",
+]
