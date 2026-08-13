@@ -5,7 +5,7 @@ SELECT touch_id,
     TRY_CAST(touch_number AS int) AS touch_number,
     angle,
     subject_line,
-    CASE
+    CASE 
         WHEN LOWER(replied) = 'yes' THEN true
         WHEN LOWER(replied) = 'no' THEN false
         ELSE NULL
@@ -13,9 +13,10 @@ SELECT touch_id,
     reply_sentiment,
     objection_tag,
     notes,
-    CASE
+    CASE 
         WHEN LOWER(opened) = 'yes' THEN true
         WHEN LOWER(opened) = 'no' THEN false
         ELSE NULL
     END AS opened
+    
 FROM {{ source('bronze', 'touch_log') }}

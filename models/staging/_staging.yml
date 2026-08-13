@@ -1,0 +1,28 @@
+version: 2
+
+models:
+  - name: stg_leads
+    columns:
+      - name: lead_id
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_touches
+    columns:
+      - name: touch_id
+        tests:
+          - unique
+          - not_null
+      - name: lead_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_leads')
+                field: lead_id
+      - name: channel
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['call', 'email', 'linkedin']
