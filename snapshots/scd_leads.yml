@@ -1,0 +1,8 @@
+snapshots:
+  - name: scd_leads
+    relation: ref('stg_leads')
+    config:
+      unique_key: lead_id
+      strategy: check
+      check_cols:
+        - status
