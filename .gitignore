@@ -30,3 +30,6 @@ logs/
 # Dagster local state
 .dagster_home/
 .dagster/
+
+# Streamlit local secrets
+.streamlit/secrets.toml

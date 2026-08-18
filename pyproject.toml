@@ -8,6 +8,7 @@ dependencies = [
     "dagster>=1.13.18",
     "dagster-dbt>=0.29.18",
     "dagster-webserver>=1.13.18",
+    "db-dtypes>=1.7.1",
     "dbt-bigquery>=1.12.0",
     "dbt-duckdb>=1.11.0",
     "dlt[bigquery,duckdb]>=1.29.1",

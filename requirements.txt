@@ -1,0 +1,7 @@
+# Dependencies for the Streamlit Cloud dashboard host only.
+# (Local dev uses uv + pyproject.toml, which includes the full pipeline stack.)
+streamlit
+google-cloud-bigquery
+db-dtypes
+pandas
+pyarrow
