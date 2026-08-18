@@ -1,29 +1,34 @@
--- Safe-to-spend, grounded in the ALTO 70% Living bucket, rolling windows.
--- Assumptions (v1, tune later): Living ceiling = 70% of trailing-3-month avg
--- income; groceries count as flexible (all non-transfer spend counts).
-WITH w90 AS (
+-- Living budget = 70% of trailing-3-COMPLETE-month avg income; "left to spend"
+-- this month = that budget minus what's already spent this calendar month.
+WITH monthly AS (
     SELECT
-        coalesce(sum(income_amount), 0)  AS income_90d,
-        coalesce(sum(expense_amount), 0) AS spend_90d
+        {{ dbt.date_trunc('month', 'txn_date') }} AS mo,
+        sum(income_amount)  AS income,
+        sum(expense_amount) AS spend
     FROM {{ ref('int_transactions') }}
-    WHERE txn_date >= {{ dbt.dateadd('day', -90, today()) }}
+    GROUP BY 1
 ),
-w30 AS (
-    SELECT coalesce(sum(expense_amount), 0) AS spent_30d
-    FROM {{ ref('int_transactions') }}
-    WHERE txn_date >= {{ dbt.dateadd('day', -30, today()) }}
+complete AS (
+    SELECT income, spend FROM monthly
+    WHERE mo < {{ dbt.date_trunc('month', today()) }}
+    ORDER BY mo DESC
+    LIMIT 3
 ),
-w7 AS (
-    SELECT coalesce(sum(expense_amount), 0) AS spent_7d
+avgs AS (
+    SELECT coalesce(avg(income), 0) AS avg_income, coalesce(avg(spend), 0) AS avg_spend FROM complete
+),
+this_month AS (
+    SELECT
+        coalesce(sum(expense_amount), 0) AS spent_mtd,
+        coalesce(sum(income_amount), 0)  AS income_mtd
     FROM {{ ref('int_transactions') }}
-    WHERE txn_date >= {{ dbt.dateadd('day', -7, today()) }}
+    WHERE txn_date >= cast({{ dbt.date_trunc('month', today()) }} as date)
 )
 SELECT
-    round(income_90d / 3, 2)                         AS avg_monthly_income,
-    round(spend_90d / 3, 2)                          AS avg_monthly_spend,
-    round(income_90d * 7 / 30, 2)                    AS living_target,      -- 70% of monthly income
-    round(spent_30d, 2)                              AS spent_last_30d,
-    round(spent_7d, 2)                               AS spent_last_7d,
-    round(income_90d * 7 / 30 - spent_30d, 2)        AS safe_to_spend_month,
-    round(income_90d * 7 / 30 / 4 - spent_7d, 2)     AS safe_to_spend_week
-FROM w90, w30, w7
+    round(avg_income)                      AS avg_monthly_income,
+    round(avg_spend)                       AS avg_monthly_spend,
+    round(avg_income * 7 / 10)             AS living_target,
+    round(spent_mtd)                       AS spent_this_month,
+    round(income_mtd)                      AS income_this_month,
+    round(avg_income * 7 / 10 - spent_mtd) AS safe_to_spend_month
+FROM avgs, this_month

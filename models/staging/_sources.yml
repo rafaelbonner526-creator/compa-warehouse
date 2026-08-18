@@ -10,3 +10,4 @@ sources:
       - name: mm_transactions
       - name: mm_categories
       - name: mm_recurring
+      - name: mm_networth

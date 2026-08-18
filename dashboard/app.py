@@ -1,11 +1,13 @@
 """compa-warehouse serving dashboard (BigQuery).
 
-Two tabs: Outreach (SIGNAL funnel) and Budget (Monarch finance). Reads the gold
-marts from BigQuery. Credentials from st.secrets (cloud) or the key file (local).
+Two tabs: Outreach (SIGNAL funnel) and Budget (Monarch finance, Rocket-Money style).
+Credentials from st.secrets (cloud) or the key file (local).
 
 Run local:  set -a; source .env; set +a; uv run streamlit run dashboard/app.py
 """
 
+import calendar
+import datetime as dt
 import os
 
 import pandas as pd
@@ -50,7 +52,6 @@ outreach_tab, budget_tab = st.tabs(["Outreach", "Budget"])
 with outreach_tab:
     st.title("Outreach funnel")
     st.caption("Live from BigQuery, built by the compa-warehouse pipeline.")
-
     k = q(
         f"""
         SELECT
@@ -65,7 +66,6 @@ with outreach_tab:
     c2.metric("Touches", int(k.touches))
     c3.metric("Open rate", f"{k.open_rate}%")
     c4.metric("Reply rate", f"{k.reply_rate}%")
-
     mart = q(
         f"SELECT * FROM `{PROJECT}.gold.mart_outreach_funnel` ORDER BY total_touches DESC"
     )
@@ -76,67 +76,80 @@ with outreach_tab:
 # ============================ BUDGET ====================================
 with budget_tab:
     st.title("Budget")
-    st.caption(
-        "Grounded in the 70% Living bucket, rolling windows. Not financial advice."
-    )
 
     sts = q(f"SELECT * FROM `{PROJECT}.gold.mart_safe_to_spend`").iloc[0]
+    nw_now = q(
+        f"SELECT net_worth FROM `{PROJECT}.gold.mart_networth` ORDER BY snapshot_date DESC LIMIT 1"
+    ).iloc[0]["net_worth"]
+
+    today = dt.date.today()
+    days_in_month = calendar.monthrange(today.year, today.month)[1]
+    days_left = days_in_month - today.day + 1
+    left = float(sts.safe_to_spend_month)
+    daily = left / days_left if days_left else 0
+
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Safe to spend / week", money(sts.safe_to_spend_week))
-    c2.metric("Safe to spend / month", money(sts.safe_to_spend_month))
-    c3.metric("Avg income / mo", money(sts.avg_monthly_income))
-    c4.metric("Avg spend / mo", money(sts.avg_monthly_spend))
+    c1.metric("Left to spend", money(left), help="Living budget minus spent this month")
+    c2.metric(
+        "Daily allowance", money(daily), help=f"{days_left} days left in the month"
+    )
+    c3.metric("Spent this month", money(sts.spent_this_month))
+    c4.metric("Net worth", money(nw_now))
 
-    if sts.safe_to_spend_month < 0:
-        st.warning(
-            f"You are {money(abs(sts.safe_to_spend_month))} over your Living target "
-            f"({money(sts.living_target)}/mo) on the rolling 30-day window."
+    # month budget progress
+    spent = float(sts.spent_this_month)
+    budget = float(sts.living_target)
+    st.caption(f"Spent {money(spent)} of {money(budget)} Living budget this month")
+    st.progress(min(spent / budget, 1.0) if budget else 0.0)
+
+    left_col, right_col = st.columns(2)
+    with left_col:
+        st.subheader("Net worth")
+        nw = q(
+            f"SELECT snapshot_date, net_worth FROM `{PROJECT}.gold.mart_networth` ORDER BY snapshot_date"
         )
+        st.line_chart(nw, x="snapshot_date", y="net_worth")
+    with right_col:
+        st.subheader("Cash flow (net by month)")
+        cf = q(
+            f"SELECT month, net FROM `{PROJECT}.gold.mart_monthly_cashflow` ORDER BY month DESC LIMIT 8"
+        )
+        cf["month"] = pd.to_datetime(cf["month"]).dt.strftime("%Y-%m")
+        st.bar_chart(cf.sort_values("month"), x="month", y="net")
 
-    cf = q(
-        f"SELECT month, income, spend, net FROM `{PROJECT}.gold.mart_monthly_cashflow` ORDER BY month"
-    )
-    cf["month"] = pd.to_datetime(cf["month"])
-
-    # forecast next 3 months at the trailing-average pace
-    last = cf["month"].max()
-    fut = pd.DataFrame(
-        {
-            "month": [last + pd.DateOffset(months=i) for i in range(1, 4)],
-            "income": float(sts.avg_monthly_income),
-            "spend": float(sts.avg_monthly_spend),
-        }
-    )
-    fut["net"] = fut["income"] - fut["spend"]
-
-    st.subheader("Cash flow (history + 3-month forecast)")
-    combined = pd.concat([cf.assign(kind="actual"), fut.assign(kind="forecast")])
-    st.line_chart(combined, x="month", y="net", color="kind")
-    proj = float(fut["net"].sum())
-    st.caption(
-        f"Projected next-3-month net at current pace: {money(proj)} "
-        f"({money(fut['net'].iloc[0])}/mo)."
-    )
-
-    left, right = st.columns(2)
-    with left:
-        st.subheader("Spend by category (latest month)")
+    left2, right2 = st.columns(2)
+    with left2:
+        st.subheader("Spending by category (this month)")
         cat = q(
             f"""
             SELECT category_group, spend
             FROM `{PROJECT}.gold.mart_spend_by_category`
             WHERE month = (SELECT max(month) FROM `{PROJECT}.gold.mart_spend_by_category`)
-            ORDER BY spend DESC
+            ORDER BY spend DESC LIMIT 8
             """
         )
-        st.bar_chart(cat, x="category_group", y="spend")
-    with right:
-        st.subheader("Accounts")
-        acc = q(
-            f"SELECT account, account_type, current_balance FROM `{PROJECT}.gold.mart_account_balances`"
+        st.bar_chart(cat, x="category_group", y="spend", horizontal=True)
+    with right2:
+        st.subheader("Upcoming bills")
+        bills = q(
+            f"""
+            SELECT due_date, merchant, round(abs(amount)) AS amount
+            FROM `{PROJECT}.silver.stg_recurring`
+            WHERE due_date >= current_date()
+            ORDER BY due_date LIMIT 8
+            """
         )
-        net_worth = q(
-            f"SELECT sum(current_balance) AS nw FROM `{PROJECT}.gold.mart_account_balances` WHERE include_in_net_worth"
-        ).iloc[0]["nw"]
-        st.metric("Net worth", money(net_worth))
-        st.dataframe(acc, use_container_width=True, hide_index=True)
+        st.dataframe(bills, use_container_width=True, hide_index=True)
+
+    st.subheader("Recent transactions")
+    recent = q(
+        f"""
+        SELECT txn_date, merchant, category, round(amount) AS amount
+        FROM `{PROJECT}.silver.stg_transactions`
+        WHERE NOT hide_from_reports
+        ORDER BY txn_date DESC LIMIT 12
+        """
+    )
+    st.dataframe(recent, use_container_width=True, hide_index=True)
+
+    st.caption("Grounded in the ALTO 70% Living bucket. Not financial advice.")

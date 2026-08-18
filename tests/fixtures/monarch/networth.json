@@ -1,0 +1,32 @@
+[
+  {
+    "date": "2026-03-31",
+    "balance": 26000,
+    "__typename": "AggregateSnapshot"
+  },
+  {
+    "date": "2026-04-30",
+    "balance": 27500,
+    "__typename": "AggregateSnapshot"
+  },
+  {
+    "date": "2026-05-31",
+    "balance": 28200,
+    "__typename": "AggregateSnapshot"
+  },
+  {
+    "date": "2026-06-30",
+    "balance": 30100,
+    "__typename": "AggregateSnapshot"
+  },
+  {
+    "date": "2026-07-31",
+    "balance": 31500,
+    "__typename": "AggregateSnapshot"
+  },
+  {
+    "date": "2026-08-15",
+    "balance": 32977,
+    "__typename": "AggregateSnapshot"
+  }
+]

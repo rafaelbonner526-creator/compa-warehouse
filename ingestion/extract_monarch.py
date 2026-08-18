@@ -43,6 +43,10 @@ async def main() -> None:
         rec = rec.get("recurringTransactionItems") or rec.get("recurring") or []
     dump("recurring", rec if isinstance(rec, list) else [])
 
+    snap = await mm.get_aggregate_snapshots()
+    snaps = snap.get("aggregateSnapshots", snap) if isinstance(snap, dict) else snap
+    dump("networth", snaps if isinstance(snaps, list) else [])
+
     # transactions: paginate the lookback window
     start = (date.today() - timedelta(days=LOOKBACK_DAYS)).isoformat()
     today = date.today().isoformat()

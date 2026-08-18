@@ -71,6 +71,9 @@ def load() -> None:
         table_name="mm_transactions",
         write_disposition="replace",
     )
+    pipeline.run(
+        frame("networth"), table_name="mm_networth", write_disposition="replace"
+    )
 
 
 if __name__ == "__main__":
