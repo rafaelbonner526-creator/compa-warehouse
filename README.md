@@ -1,5 +1,7 @@
 # compa-warehouse
 
+[![dbt CI](https://github.com/rafaelbonner526-creator/compa-warehouse/actions/workflows/ci.yml/badge.svg)](https://github.com/rafaelbonner526-creator/compa-warehouse/actions/workflows/ci.yml)
+
 A personal data platform built on my own daily data exhaust. It ingests the
 data I actually generate (starting with my cold-outreach pipeline), models it
 into a tested dimensional warehouse, and serves a daily analytics surface I
@@ -9,7 +11,8 @@ Built slowly and in public as a hands-on tour of the modern data-engineering
 stack. Every phase ships working code, a portfolio artifact, and a written
 learning note in [`docs/learnings/`](docs/learnings/).
 
-> Status: **Session 0, bronze layer live.** See the roadmap below.
+> Status: **Sessions 0-5 complete.** bronze to silver to gold, typed and tested,
+> SCD-2 history, CI green on every push. See the roadmap below.
 
 ## Architecture
 
@@ -59,11 +62,11 @@ Full diagram and design rationale: [`docs/architecture.md`](docs/architecture.md
 | # | Module | Ships | Status |
 |---|---|---|---|
 | 0 | Repo + DuckDB + medallion + bronze load | raw CSVs to `bronze.*` | done |
-| 1 | `dlt` incremental ingestion | incremental bronze loads | todo |
-| 2 | dbt staging models | `stg_*` (silver) | todo |
-| 3 | `dim_lead` with SCD-2 | lead status history | todo |
-| 4 | Fact tables + gold mart | daily funnel dashboard | todo |
-| 5 | dbt tests + CI | GitHub Actions gate | todo |
+| 1 | `dlt` incremental ingestion | incremental bronze loads | done |
+| 2 | dbt staging models | `stg_*` (silver) | done |
+| 3 | `dim_lead` with SCD-2 | lead status history | done |
+| 4 | Fact tables + gold mart | funnel metrics | done |
+| 5 | dbt tests + CI | GitHub Actions gate | done |
 | 6 | Dagster | orchestrated daily run | todo |
 | 7 | Cloud (BigQuery) | cloud warehouse deploy | todo |
 | 8 | Spark | batch reprocessing at scale | todo |
@@ -73,7 +76,9 @@ Full diagram and design rationale: [`docs/architecture.md`](docs/architecture.md
 
 ```bash
 uv sync
-uv run ingestion/load_bronze.py
+cp .env.example .env   # then set COMPA_LEADS_DIR to your source CSV directory
+uv run ingestion/load_bronze_dlt.py
+uv run dbt build --profiles-dir .
 uv run python -c "import duckdb; con=duckdb.connect('data/warehouse.duckdb'); \
 print(con.sql('SELECT table_name, estimated_size FROM duckdb_tables()'))"
 ```
