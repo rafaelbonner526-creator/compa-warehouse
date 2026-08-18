@@ -26,3 +26,7 @@ logs/
 
 # local secrets / machine config
 .env
+
+# Dagster local state
+.dagster_home/
+.dagster/
