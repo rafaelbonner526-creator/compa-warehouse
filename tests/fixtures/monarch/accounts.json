@@ -1,0 +1,44 @@
+[
+  {
+    "id": "a1",
+    "displayName": "Checking",
+    "currentBalance": 2000,
+    "isAsset": true,
+    "includeInNetWorth": true,
+    "type": {
+      "display": "Cash"
+    },
+    "institution": {
+      "name": "Test Bank"
+    },
+    "order": 0
+  },
+  {
+    "id": "a2",
+    "displayName": "HYSA",
+    "currentBalance": 6000,
+    "isAsset": true,
+    "includeInNetWorth": true,
+    "type": {
+      "display": "Cash"
+    },
+    "institution": {
+      "name": "Test Bank"
+    },
+    "order": 1
+  },
+  {
+    "id": "a3",
+    "displayName": "Credit Card",
+    "currentBalance": -500,
+    "isAsset": false,
+    "includeInNetWorth": true,
+    "type": {
+      "display": "Credit"
+    },
+    "institution": {
+      "name": "Test Bank"
+    },
+    "order": 2
+  }
+]

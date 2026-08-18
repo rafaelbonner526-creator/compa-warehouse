@@ -1,0 +1,21 @@
+[
+  {
+    "date": "2026-08-02",
+    "amount": -1600,
+    "stream": {
+      "frequency": "monthly",
+      "amount": -1600,
+      "merchant": {
+        "name": "Landlord"
+      }
+    },
+    "category": {
+      "id": "c2",
+      "name": "Rent"
+    },
+    "account": {
+      "id": "a1",
+      "displayName": "Checking"
+    }
+  }
+]

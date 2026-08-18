@@ -5,3 +5,8 @@ sources:
     tables:
       - name: leads_master
       - name: touch_log
+      # finance domain (Monarch)
+      - name: mm_accounts
+      - name: mm_transactions
+      - name: mm_categories
+      - name: mm_recurring

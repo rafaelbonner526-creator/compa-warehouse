@@ -1,0 +1,170 @@
+[
+  {
+    "id": "t1",
+    "date": "2026-08-01",
+    "amount": 3000,
+    "category": {
+      "id": "c3",
+      "name": "Paycheck"
+    },
+    "merchant": {
+      "name": "Merchant 1"
+    },
+    "account": {
+      "id": "a1",
+      "displayName": "Checking"
+    },
+    "isRecurring": false,
+    "pending": false,
+    "hideFromReports": false,
+    "tags": [],
+    "attachments": []
+  },
+  {
+    "id": "t2",
+    "date": "2026-08-02",
+    "amount": -1600,
+    "category": {
+      "id": "c2",
+      "name": "Rent"
+    },
+    "merchant": {
+      "name": "Merchant 2"
+    },
+    "account": {
+      "id": "a1",
+      "displayName": "Checking"
+    },
+    "isRecurring": false,
+    "pending": false,
+    "hideFromReports": false,
+    "tags": [],
+    "attachments": []
+  },
+  {
+    "id": "t3",
+    "date": "2026-08-03",
+    "amount": -120,
+    "category": {
+      "id": "c1",
+      "name": "Groceries"
+    },
+    "merchant": {
+      "name": "Merchant 3"
+    },
+    "account": {
+      "id": "a1",
+      "displayName": "Checking"
+    },
+    "isRecurring": false,
+    "pending": false,
+    "hideFromReports": false,
+    "tags": [],
+    "attachments": []
+  },
+  {
+    "id": "t4",
+    "date": "2026-08-05",
+    "amount": -500,
+    "category": {
+      "id": "c4",
+      "name": "Transfer"
+    },
+    "merchant": {
+      "name": "Merchant 4"
+    },
+    "account": {
+      "id": "a2",
+      "displayName": "Checking"
+    },
+    "isRecurring": false,
+    "pending": false,
+    "hideFromReports": false,
+    "tags": [],
+    "attachments": []
+  },
+  {
+    "id": "t5",
+    "date": "2026-08-10",
+    "amount": 3000,
+    "category": {
+      "id": "c3",
+      "name": "Paycheck"
+    },
+    "merchant": {
+      "name": "Merchant 5"
+    },
+    "account": {
+      "id": "a1",
+      "displayName": "Checking"
+    },
+    "isRecurring": false,
+    "pending": false,
+    "hideFromReports": false,
+    "tags": [],
+    "attachments": []
+  },
+  {
+    "id": "t6",
+    "date": "2026-08-12",
+    "amount": -90,
+    "category": {
+      "id": "c1",
+      "name": "Groceries"
+    },
+    "merchant": {
+      "name": "Merchant 6"
+    },
+    "account": {
+      "id": "a1",
+      "displayName": "Checking"
+    },
+    "isRecurring": false,
+    "pending": false,
+    "hideFromReports": false,
+    "tags": [],
+    "attachments": []
+  },
+  {
+    "id": "t7",
+    "date": "2026-07-15",
+    "amount": -1600,
+    "category": {
+      "id": "c2",
+      "name": "Rent"
+    },
+    "merchant": {
+      "name": "Merchant 7"
+    },
+    "account": {
+      "id": "a1",
+      "displayName": "Checking"
+    },
+    "isRecurring": false,
+    "pending": false,
+    "hideFromReports": false,
+    "tags": [],
+    "attachments": []
+  },
+  {
+    "id": "t8",
+    "date": "2026-07-16",
+    "amount": 3000,
+    "category": {
+      "id": "c3",
+      "name": "Paycheck"
+    },
+    "merchant": {
+      "name": "Merchant 8"
+    },
+    "account": {
+      "id": "a1",
+      "displayName": "Checking"
+    },
+    "isRecurring": false,
+    "pending": false,
+    "hideFromReports": false,
+    "tags": [],
+    "attachments": []
+  }
+]

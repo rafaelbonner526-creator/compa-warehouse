@@ -1,0 +1,34 @@
+[
+  {
+    "id": "c1",
+    "name": "Groceries",
+    "group": {
+      "name": "Food & Dining",
+      "type": "expense"
+    }
+  },
+  {
+    "id": "c2",
+    "name": "Rent",
+    "group": {
+      "name": "Housing",
+      "type": "expense"
+    }
+  },
+  {
+    "id": "c3",
+    "name": "Paycheck",
+    "group": {
+      "name": "Income",
+      "type": "income"
+    }
+  },
+  {
+    "id": "c4",
+    "name": "Transfer",
+    "group": {
+      "name": "Transfers",
+      "type": "transfer"
+    }
+  }
+]

@@ -12,6 +12,7 @@ Run (after extract_monarch.py):
 """
 
 import json
+import os
 from pathlib import Path
 
 import dlt
@@ -22,7 +23,12 @@ from _destination import get_destination
 
 load_dotenv()
 
-LAND = Path(__file__).parent.parent / "data" / "raw" / "monarch"
+LAND = Path(
+    os.getenv(
+        "MONARCH_LANDING_DIR",
+        str(Path(__file__).parent.parent / "data" / "raw" / "monarch"),
+    )
+)
 
 
 def frame(name: str, drop: tuple = ()) -> pd.DataFrame:
@@ -42,8 +48,11 @@ def frame(name: str, drop: tuple = ()) -> pd.DataFrame:
 
 
 def load() -> None:
+    # target-specific pipeline name so duckdb (dev) and bigquery (prod) keep
+    # separate dlt state instead of conflicting on a destination switch
+    target = os.getenv("WAREHOUSE_TARGET", "duckdb")
     pipeline = dlt.pipeline(
-        pipeline_name="compa_finance",
+        pipeline_name=f"compa_finance_{target}",
         destination=get_destination(),
         dataset_name="bronze",
     )
