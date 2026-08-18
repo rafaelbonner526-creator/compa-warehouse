@@ -1,0 +1,68 @@
+"""Extract Monarch data to JSON landing files (Engine A / budget).
+
+Runs in the monarch-mcp venv (keychain auth), read-only. Writes raw record
+arrays to data/raw/monarch/ for the dlt loader to pick up. Two-stage on
+purpose: the Monarch session lives in its own venv, separate from the
+warehouse (dlt/dbt) venv.
+
+Run:
+  /Users/rafaelbonner/.venvs/monarch-mcp/bin/python ingestion/extract_monarch.py
+"""
+
+import asyncio
+import json
+from datetime import date, timedelta
+from pathlib import Path
+
+from monarch_mcp.secure_session import secure_session
+
+OUT = Path(__file__).parent.parent / "data" / "raw" / "monarch"
+OUT.mkdir(parents=True, exist_ok=True)
+
+LOOKBACK_DAYS = 400  # ~13 months, enough for rolling-window budget + trends
+
+
+def dump(name: str, records: list) -> None:
+    (OUT / f"{name}.json").write_text(json.dumps(records, indent=2, default=str))
+    print(f"  {name}: {len(records)} records -> {name}.json")
+
+
+async def main() -> None:
+    mm = secure_session.get_authenticated_client()
+    if mm is None:
+        raise SystemExit("Monarch auth needed (run the MCP auth flow first)")
+
+    acc = await mm.get_accounts()
+    dump("accounts", acc.get("accounts", []) if isinstance(acc, dict) else acc)
+
+    cat = await mm.get_transaction_categories()
+    dump("categories", cat.get("categories", []) if isinstance(cat, dict) else cat)
+
+    rec = await mm.get_recurring_transactions()
+    if isinstance(rec, dict):
+        rec = rec.get("recurringTransactionItems") or rec.get("recurring") or []
+    dump("recurring", rec if isinstance(rec, list) else [])
+
+    # transactions: paginate the lookback window
+    start = (date.today() - timedelta(days=LOOKBACK_DAYS)).isoformat()
+    today = date.today().isoformat()
+    txns: list = []
+    offset, page = 0, 100
+    while True:
+        r = await mm.get_transactions(
+            limit=page, offset=offset, start_date=start, end_date=today
+        )
+        block = r.get("allTransactions", r) if isinstance(r, dict) else {}
+        results = block.get("results", []) if isinstance(block, dict) else []
+        txns.extend(results)
+        if len(results) < page:
+            break
+        offset += page
+    dump("transactions", txns)
+
+    if txns:
+        print("  sample txn keys:", sorted(txns[0].keys()))
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
