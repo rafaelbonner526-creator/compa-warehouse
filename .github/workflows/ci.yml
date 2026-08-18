@@ -1,0 +1,30 @@
+name: dbt CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # CI never sees the private vault; build the whole pipeline on committed fixtures.
+      COMPA_LEADS_DIR: tests/fixtures/leads
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Load bronze from fixtures (dlt)
+        run: uv run ingestion/load_bronze_dlt.py
+
+      - name: dbt build (models + snapshot + tests)
+        run: uv run dbt build --profiles-dir .
