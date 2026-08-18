@@ -23,6 +23,9 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked
 
+      - name: Create warehouse directory
+        run: mkdir -p data
+
       - name: Load bronze from fixtures (dlt)
         run: uv run ingestion/load_bronze_dlt.py
 
