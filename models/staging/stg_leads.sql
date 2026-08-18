@@ -36,10 +36,11 @@ SELECT CAST(id AS int) AS lead_id,
         ELSE NULL
     END                               AS linkedin_active,
 
-    -- dates (try_cast: blanks/bad values become NULL instead of erroring)
-    TRY_CAST(found_date AS DATE)      AS found_date,
-    TRY_CAST(last_touch_date AS DATE) AS last_touch_date,
-    TRY_CAST(next_action_date AS DATE) AS next_action_date
+    -- dates (safe_cast: blanks/bad values become NULL instead of erroring;
+    -- dbt.safe_cast compiles to TRY_CAST on duckdb, SAFE_CAST on bigquery)
+    {{ try_cast_null('found_date', 'date') }}       AS found_date,
+    {{ try_cast_null('last_touch_date', 'date') }}  AS last_touch_date,
+    {{ try_cast_null('next_action_date', 'date') }} AS next_action_date
 
 FROM {{ source('bronze', 'leads_master') }}
 

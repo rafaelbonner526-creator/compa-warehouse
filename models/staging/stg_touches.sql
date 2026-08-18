@@ -2,7 +2,7 @@ SELECT touch_id,
     CAST(lead_id AS int) AS lead_id,
     CAST(date AS DATE) AS touch_date,
     channel,
-    TRY_CAST(touch_number AS int) AS touch_number,
+    {{ try_cast_null('touch_number', 'integer') }} AS touch_number,
     angle,
     subject_line,
     CASE 

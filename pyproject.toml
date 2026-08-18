@@ -8,10 +8,12 @@ dependencies = [
     "dagster>=1.13.18",
     "dagster-dbt>=0.29.18",
     "dagster-webserver>=1.13.18",
+    "dbt-bigquery>=1.12.0",
     "dbt-duckdb>=1.11.0",
-    "dlt[duckdb]>=1.29.1",
+    "dlt[bigquery,duckdb]>=1.29.1",
     "duckdb>=1.5.5",
     "pandas>=3.0.5",
     "pyarrow>=25.0.1",
     "python-dotenv>=1.2.2",
+    "streamlit>=1.59.1",
 ]
