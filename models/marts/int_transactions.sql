@@ -9,7 +9,8 @@ SELECT
     t.merchant,
     t.account,
     CASE WHEN c.group_type = 'expense' AND t.amount < 0 THEN -t.amount ELSE 0 END AS expense_amount,
-    CASE WHEN c.group_type = 'income'  AND t.amount > 0 THEN  t.amount ELSE 0 END AS income_amount
+    CASE WHEN c.group_type = 'income'  AND t.amount > 0 THEN  t.amount ELSE 0 END AS income_amount,
+    CASE WHEN t.category = 'Axtria Paycheck' AND t.amount > 0 THEN t.amount ELSE 0 END AS w2_income
 FROM {{ ref('stg_transactions') }} t
 LEFT JOIN {{ ref('stg_categories') }} c ON t.category_id = c.category_id
 WHERE NOT t.hide_from_reports
