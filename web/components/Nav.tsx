@@ -23,6 +23,7 @@ export default function Nav() {
   return (
     <nav className="mx-auto flex max-w-5xl gap-1 px-5 pt-6">
       {link("/", "Budget")}
+      {link("/investing", "Investing")}
       {link("/outreach", "Outreach")}
     </nav>
   );

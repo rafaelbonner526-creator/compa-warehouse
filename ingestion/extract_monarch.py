@@ -47,6 +47,46 @@ async def main() -> None:
     snaps = snap.get("aggregateSnapshots", snap) if isinstance(snap, dict) else snap
     dump("networth", snaps if isinstance(snaps, list) else [])
 
+    # holdings across investment accounts (for portfolio signals)
+    all_accts = acc.get("accounts", []) if isinstance(acc, dict) else acc
+    inv = [
+        a for a in all_accts if (a.get("type") or {}).get("display") == "Investments"
+    ]
+    holdings = []
+    for a in inv:
+        try:
+            h = None
+            for attempt in range(4):  # Monarch occasionally 502s; retry
+                try:
+                    h = await mm.get_account_holdings(a["id"])
+                    break
+                except Exception:  # noqa: BLE001
+                    if attempt == 3:
+                        raise
+                    await asyncio.sleep(2)
+            edges = (
+                ((h or {}).get("portfolio") or {}).get("aggregateHoldings") or {}
+            ).get("edges") or []
+            for e in edges:
+                n = e.get("node") or {}
+                sec = n.get("security") or {}
+                holdings.append(
+                    {
+                        "account": a.get("displayName"),
+                        "account_id": a.get("id"),
+                        "ticker": sec.get("ticker"),
+                        "name": sec.get("name"),
+                        "security_type": sec.get("type") or sec.get("typeDisplay"),
+                        "market_value": n.get("totalValue"),
+                        "quantity": n.get("quantity"),
+                        "basis": n.get("basis"),
+                        "change_pct": n.get("securityPriceChangePercent"),
+                    }
+                )
+        except Exception as ex:  # noqa: BLE001
+            print(f"  holdings {a.get('displayName')} error: {ex}")
+    dump("holdings", holdings)
+
     # transactions: paginate the lookback window
     start = (date.today() - timedelta(days=LOOKBACK_DAYS)).isoformat()
     today = date.today().isoformat()

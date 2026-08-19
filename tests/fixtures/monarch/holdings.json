@@ -1,0 +1,8 @@
+[
+  {"account":"ROTH IRA","ticker":"VOO","name":"Vanguard S&P 500","security_type":"etf","market_value":7000,"quantity":10,"basis":6000,"change_pct":1.2},
+  {"account":"ROTH IRA","ticker":"VXUS","name":"Vanguard Intl","security_type":"etf","market_value":6000,"quantity":80,"basis":5500,"change_pct":0.5},
+  {"account":"Active Investing (...7238)","ticker":"VYMI","name":"Intl Dividend","security_type":"etf","market_value":3500,"quantity":50,"basis":3300,"change_pct":0.3},
+  {"account":"Active Investing (...7238)","ticker":"GOOGL","name":"Alphabet","security_type":"equity","market_value":800,"quantity":2,"basis":600,"change_pct":2.0},
+  {"account":"Active Investing (...7238)","ticker":"NVDA","name":"Nvidia","security_type":"equity","market_value":525,"quantity":1,"basis":400,"change_pct":3.0},
+  {"account":"Active Investing (...7238)","ticker":"SPAXX","name":"Cash","security_type":"cash","market_value":500,"quantity":500,"basis":500,"change_pct":0}
+]
