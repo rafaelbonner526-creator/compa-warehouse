@@ -27,18 +27,16 @@ type Data = {
   networth: Row[];
   cashflow: Row[];
   categories: Row[];
+  categoryTrend: Row[];
+  merchants: Row[];
   bills: Row[];
   recent: Row[];
+  runway: Row | null;
+  recurring: Row | null;
   refreshed_at: string | null;
 };
 
-function Card({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={`rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 ${className}`}>
       {children}
@@ -46,24 +44,11 @@ function Card({
   );
 }
 
-function Kpi({
-  label,
-  value,
-  accent,
-  sub,
-}: {
-  label: string;
-  value: string;
-  accent?: string;
-  sub?: string;
-}) {
+function Kpi({ label, value, accent, sub }: { label: string; value: string; accent?: string; sub?: string }) {
   return (
     <Card>
       <div className="text-sm text-zinc-400">{label}</div>
-      <div
-        className="mt-1 text-3xl font-semibold tracking-tight"
-        style={accent ? { color: accent } : undefined}
-      >
+      <div className="mt-1 text-3xl font-semibold tracking-tight" style={accent ? { color: accent } : undefined}>
         {value}
       </div>
       {sub && <div className="mt-1 text-xs text-zinc-500">{sub}</div>}
@@ -71,41 +56,14 @@ function Kpi({
   );
 }
 
-function ChartHead({
-  title,
-  value,
-  note,
-  noteColor,
-}: {
-  title: string;
-  value: string;
-  note?: string;
-  noteColor?: string;
-}) {
-  return (
-    <div className="mb-3 flex items-baseline justify-between">
-      <span className="text-sm font-medium text-zinc-300">{title}</span>
-      <span className="text-right">
-        <span className="text-lg font-semibold text-zinc-100">{value}</span>
-        {note && (
-          <span className="ml-2 text-xs" style={{ color: noteColor ?? "#71717a" }}>
-            {note}
-          </span>
-        )}
-      </span>
-    </div>
-  );
-}
-
 const tip = {
-  contentStyle: {
-    background: "#18181b",
-    border: "1px solid #3f3f46",
-    borderRadius: 12,
-    color: "#fafafa",
-  },
+  contentStyle: { background: "#18181b", border: "1px solid #3f3f46", borderRadius: 12, color: "#fafafa" },
   labelStyle: { color: "#a1a1aa" },
 };
+
+const Dot = ({ c }: { c: string }) => (
+  <span className="inline-block h-2 w-2 rounded-full" style={{ background: c }} />
+);
 
 export default function Home() {
   const [d, setD] = useState<Data | null>(null);
@@ -127,7 +85,6 @@ export default function Home() {
   const spent = Number(s.spent_this_month);
   const pctSpent = budget ? Math.min((spent / budget) * 100, 100) : 0;
 
-  // month date math
   const now = new Date();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const dayOfMonth = now.getDate();
@@ -136,33 +93,34 @@ export default function Home() {
   const projected = dayOfMonth > 0 ? (spent / dayOfMonth) * daysInMonth : spent;
   const projOver = projected - budget;
 
-  // net worth series + 30-day change
-  const nw = d.networth.map((r) => ({
-    date: String(r.snapshot_date).slice(5),
-    v: Number(r.net_worth),
-  }));
+  const nw = d.networth.map((r) => ({ date: String(r.snapshot_date).slice(5), v: Number(r.net_worth) }));
   const nwNow = nw.length ? nw[nw.length - 1].v : 0;
   const nwPrior = nw.length > 30 ? nw[nw.length - 31].v : nw.length ? nw[0].v : 0;
   const nwChange = nwNow - nwPrior;
 
-  // cash flow (chronological) + current-month figures
-  const cf = [...d.cashflow]
-    .reverse()
-    .map((r) => ({
-      month: String(r.month).slice(0, 7).slice(5),
-      net: Number(r.net),
-      income: Number(r.income),
-      spend: Number(r.spend),
-    }));
+  const cf = [...d.cashflow].reverse().map((r) => ({
+    month: String(r.month).slice(5, 7),
+    income: Number(r.income),
+    spend: Number(r.spend),
+    net: Number(r.net),
+  }));
   const curMonth = d.cashflow[0] ?? {};
   const curIncome = Number(curMonth.income ?? 0);
   const curSpend = Number(curMonth.spend ?? 0);
 
-  const cats = d.categories.map((r) => ({
-    name: String(r.category_group),
-    spend: Number(r.spend),
-  }));
+  // trailing 3 complete months avg savings rate
+  const complete = d.cashflow.slice(1, 4);
+  const savingsRate = complete.length
+    ? Math.round(complete.reduce((a, r) => a + Number(r.savings_rate_pct ?? 0), 0) / complete.length)
+    : 0;
+
+  const cats = d.categories.map((r) => ({ name: String(r.category_group), spend: Number(r.spend) }));
   const catTotal = cats.reduce((a, c) => a + c.spend, 0);
+
+  const runwayMonths = d.runway ? Number(d.runway.runway_months) : 0;
+  const liquid = d.runway ? Number(d.runway.liquid_savings) : 0;
+  const recurringMo = d.recurring ? Number(d.recurring.monthly_recurring) : 0;
+  const recurringN = d.recurring ? Number(d.recurring.bills) : 0;
 
   const refreshed = d.refreshed_at
     ? new Date(d.refreshed_at).toLocaleString("en-US", {
@@ -178,34 +136,34 @@ export default function Home() {
     <main className="mx-auto max-w-5xl px-5 py-8">
       <div className="flex items-baseline justify-between">
         <h1 className="text-2xl font-semibold">Budget</h1>
-        {refreshed && (
-          <span className="text-xs text-zinc-500">Last refreshed {refreshed} ET</span>
-        )}
+        {refreshed && <span className="text-xs text-zinc-500">Last refreshed {refreshed} ET</span>}
       </div>
-      <p className="mt-1 text-sm text-zinc-500">
-        Living budget = 70% of W2 take-home. Not financial advice.
-      </p>
+      <p className="mt-1 text-sm text-zinc-500">Living budget = 70% of W2 take-home. Not financial advice.</p>
 
-      {/* KPIs */}
+      {/* KPI row 1 */}
       <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi
-          label="Left to spend"
-          value={money(left)}
-          accent={left >= 0 ? GREEN : RED}
-          sub="this month"
-        />
-        <Kpi
-          label="Daily allowance"
-          value={money(dailyAllowance)}
-          sub={`${daysLeft} days left`}
-        />
+        <Kpi label="Left to spend" value={money(left)} accent={left >= 0 ? GREEN : RED} sub="this month" />
+        <Kpi label="Daily allowance" value={money(dailyAllowance)} sub={`${daysLeft} days left`} />
         <Kpi label="Spent this month" value={money(spent)} sub={`of ${money(budget)}`} />
+        <Kpi label="Net worth" value={money(nwNow)} accent={GREEN} sub={`${signed(nwChange)} · 30d`} />
+      </div>
+
+      {/* KPI row 2 */}
+      <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi
-          label="Net worth"
-          value={money(nwNow)}
-          accent={GREEN}
-          sub={`${signed(nwChange)} · 30d`}
+          label="Savings rate"
+          value={`${savingsRate}%`}
+          accent={savingsRate >= 0 ? GREEN : RED}
+          sub="avg, last 3 months"
         />
+        <Kpi
+          label="Runway"
+          value={`${runwayMonths} mo`}
+          accent={runwayMonths < 3 ? RED : GREEN}
+          sub={`${money(liquid)} liquid`}
+        />
+        <Kpi label="Recurring" value={`${money(recurringMo)}/mo`} sub={`${recurringN} bills`} />
+        <Kpi label="Income this month" value={money(curIncome)} sub="W2 + freelance" />
       </div>
 
       {/* budget progress + forecast */}
@@ -213,23 +171,16 @@ export default function Home() {
         <Card>
           <div className="flex justify-between text-sm">
             <span className="text-zinc-400">Spent this month</span>
-            <span className="text-zinc-300">
-              {money(spent)} of {money(budget)}
-            </span>
+            <span className="text-zinc-300">{money(spent)} of {money(budget)}</span>
           </div>
           <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-zinc-800">
-            <div
-              className="h-full rounded-full"
-              style={{ width: `${pctSpent}%`, background: pctSpent >= 100 ? RED : GREEN }}
-            />
+            <div className="h-full rounded-full" style={{ width: `${pctSpent}%`, background: pctSpent >= 100 ? RED : GREEN }} />
           </div>
         </Card>
         <Card>
           <div className="flex justify-between text-sm">
             <span className="text-zinc-400">Projected month-end spend</span>
-            <span className="font-medium" style={{ color: projOver > 0 ? RED : GREEN }}>
-              {money(projected)}
-            </span>
+            <span className="font-medium" style={{ color: projOver > 0 ? RED : GREEN }}>{money(projected)}</span>
           </div>
           <div className="mt-1 text-xs text-zinc-500">
             {projOver > 0
@@ -239,15 +190,16 @@ export default function Home() {
         </Card>
       </div>
 
-      {/* charts */}
+      {/* net worth + cash flow */}
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
-          <ChartHead
-            title="Net worth"
-            value={money(nwNow)}
-            note={`${signed(nwChange)} · 30d`}
-            noteColor={nwChange >= 0 ? GREEN : RED}
-          />
+          <div className="mb-3 flex items-baseline justify-between">
+            <span className="text-sm font-medium text-zinc-300">Net worth</span>
+            <span>
+              <span className="text-lg font-semibold">{money(nwNow)}</span>
+              <span className="ml-2 text-xs" style={{ color: nwChange >= 0 ? GREEN : RED }}>{signed(nwChange)} · 30d</span>
+            </span>
+          </div>
           <ResponsiveContainer width="100%" height={190}>
             <AreaChart data={nw} margin={{ left: -12, right: 8, top: 4 }}>
               <defs>
@@ -257,11 +209,7 @@ export default function Home() {
                 </linearGradient>
               </defs>
               <XAxis dataKey="date" tick={{ fill: "#71717a", fontSize: 11 }} minTickGap={40} />
-              <YAxis
-                tick={{ fill: "#71717a", fontSize: 11 }}
-                tickFormatter={(v) => `$${Math.round(Number(v) / 1000)}k`}
-                width={44}
-              />
+              <YAxis tick={{ fill: "#71717a", fontSize: 11 }} tickFormatter={(v) => `$${Math.round(Number(v) / 1000)}k`} width={44} />
               <Tooltip {...tip} formatter={(v) => money(Number(v))} />
               <Area type="monotone" dataKey="v" stroke={GREEN} strokeWidth={2} fill="url(#nw)" />
             </AreaChart>
@@ -269,25 +217,20 @@ export default function Home() {
         </Card>
 
         <Card>
-          <ChartHead
-            title="Cash flow (net by month)"
-            value={signed(curIncome - curSpend)}
-            note={`${money(curIncome)} in · ${money(curSpend)} out`}
-          />
+          <div className="mb-3 flex items-baseline justify-between">
+            <span className="text-sm font-medium text-zinc-300">Income vs spend (by month)</span>
+            <span className="flex items-center gap-3 text-xs text-zinc-400">
+              <span className="flex items-center gap-1"><Dot c={GREEN} /> income</span>
+              <span className="flex items-center gap-1"><Dot c={RED} /> spend</span>
+            </span>
+          </div>
           <ResponsiveContainer width="100%" height={190}>
             <BarChart data={cf} margin={{ left: -12, right: 8, top: 4 }}>
               <XAxis dataKey="month" tick={{ fill: "#71717a", fontSize: 11 }} />
-              <YAxis
-                tick={{ fill: "#71717a", fontSize: 11 }}
-                tickFormatter={(v) => `$${Math.round(Number(v) / 1000)}k`}
-                width={44}
-              />
+              <YAxis tick={{ fill: "#71717a", fontSize: 11 }} tickFormatter={(v) => `$${Math.round(Number(v) / 1000)}k`} width={44} />
               <Tooltip {...tip} cursor={{ fill: "#27272a55" }} formatter={(v) => money(Number(v))} />
-              <Bar dataKey="net" radius={[4, 4, 0, 0]}>
-                {cf.map((r, i) => (
-                  <Cell key={i} fill={r.net >= 0 ? GREEN : RED} />
-                ))}
-              </Bar>
+              <Bar dataKey="income" fill={GREEN} radius={[3, 3, 0, 0]} />
+              <Bar dataKey="spend" fill={RED} radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -295,27 +238,55 @@ export default function Home() {
 
       {/* category spend */}
       <Card className="mt-3">
-        <ChartHead
-          title="Spending by category (this month)"
-          value={money(catTotal)}
-          note="total"
-        />
+        <div className="mb-3 flex items-baseline justify-between">
+          <span className="text-sm font-medium text-zinc-300">Spending by category (this month)</span>
+          <span className="text-lg font-semibold">{money(catTotal)}</span>
+        </div>
         <ResponsiveContainer width="100%" height={Math.max(cats.length * 34, 120)}>
           <BarChart data={cats} layout="vertical" margin={{ left: 40, right: 48 }}>
             <XAxis type="number" hide />
-            <YAxis
-              type="category"
-              dataKey="name"
-              tick={{ fill: "#a1a1aa", fontSize: 12 }}
-              width={120}
-            />
+            <YAxis type="category" dataKey="name" tick={{ fill: "#a1a1aa", fontSize: 12 }} width={120} />
             <Tooltip {...tip} cursor={{ fill: "#27272a55" }} formatter={(v) => money(Number(v))} />
             <Bar dataKey="spend" fill={ACCENT} radius={[0, 4, 4, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </Card>
 
-      {/* lists */}
+      {/* category trend + top merchants */}
+      <div className="mt-3 grid gap-3 lg:grid-cols-2">
+        <Card>
+          <div className="mb-3 text-sm font-medium text-zinc-300">This month vs 3-month average</div>
+          <ul className="space-y-2 text-sm">
+            {d.categoryTrend.map((r, i) => {
+              const delta = Number(r.delta);
+              return (
+                <li key={i} className="flex items-center justify-between">
+                  <span className="text-zinc-300">{String(r.category_group)}</span>
+                  <span className="flex items-center gap-3">
+                    <span className="text-zinc-200">{money(Number(r.this_month))}</span>
+                    <span className="w-20 text-right text-xs" style={{ color: delta > 0 ? RED : GREEN }}>
+                      {delta > 0 ? "▲" : "▼"} {money(Math.abs(delta))}
+                    </span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
+        <Card>
+          <div className="mb-3 text-sm font-medium text-zinc-300">Top merchants (30d)</div>
+          <ul className="space-y-2 text-sm">
+            {d.merchants.map((m, i) => (
+              <li key={i} className="flex justify-between">
+                <span className="truncate text-zinc-300">{String(m.merchant)}</span>
+                <span className="text-zinc-400">{money(Number(m.spend))}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </div>
+
+      {/* bills + recent */}
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <div className="mb-3 text-sm font-medium text-zinc-300">Upcoming bills</div>
@@ -323,9 +294,7 @@ export default function Home() {
             {d.bills.map((b, i) => (
               <li key={i} className="flex justify-between">
                 <span className="text-zinc-300">{String(b.merchant)}</span>
-                <span className="text-zinc-400">
-                  {String(b.due_date).slice(5)} · {money(Number(b.amount))}
-                </span>
+                <span className="text-zinc-400">{String(b.due_date).slice(5)} · {money(Number(b.amount))}</span>
               </li>
             ))}
             {!d.bills.length && <li className="text-zinc-500">None upcoming</li>}
