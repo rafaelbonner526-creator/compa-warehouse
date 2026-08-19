@@ -1,20 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Simple HTTP basic-auth gate. Active only when DASH_PASSWORD is set (Vercel env).
+// Cookie-based gate. Active only when DASH_PASSWORD is set (Vercel env).
 export function middleware(req: NextRequest) {
   const pass = process.env.DASH_PASSWORD;
   if (!pass) return NextResponse.next();
 
-  const auth = req.headers.get("authorization");
-  if (auth?.startsWith("Basic ")) {
-    const decoded = atob(auth.split(" ")[1] ?? "");
-    const pwd = decoded.split(":")[1] ?? "";
-    if (pwd === pass) return NextResponse.next();
+  const { pathname } = req.nextUrl;
+  if (pathname === "/login" || pathname === "/api/login") {
+    return NextResponse.next();
   }
-  return new NextResponse("Authentication required", {
-    status: 401,
-    headers: { "WWW-Authenticate": 'Basic realm="compa-warehouse"' },
-  });
+
+  if (req.cookies.get("compa_auth")?.value === pass) {
+    return NextResponse.next();
+  }
+
+  const url = req.nextUrl.clone();
+  url.pathname = "/login";
+  return NextResponse.redirect(url);
 }
 
 export const config = {
