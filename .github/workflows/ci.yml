@@ -12,6 +12,7 @@ jobs:
     env:
       COMPA_LEADS_DIR: tests/fixtures/leads
       MONARCH_LANDING_DIR: tests/fixtures/monarch
+      FRED_LANDING_DIR: tests/fixtures/fred
     steps:
       - uses: actions/checkout@v4
       - name: Install uv
@@ -26,5 +27,7 @@ jobs:
         run: uv run ingestion/load_bronze_dlt.py
       - name: Load finance bronze from fixtures (dlt)
         run: uv run ingestion/load_finance.py
+      - name: Load macro bronze from fixtures (dlt)
+        run: uv run ingestion/load_macro.py
       - name: dbt build (models + snapshot + tests)
         run: uv run dbt build --profiles-dir .

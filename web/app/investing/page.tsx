@@ -11,7 +11,18 @@ type Data = {
   signals: Row;
   allocation: Row[];
   positions: Row[];
+  macro: Row[];
+  regime: Row | null;
   refreshed_at: string | null;
+};
+
+const MACRO_NAMES: Record<string, string> = {
+  oil_wti: "Oil (WTI)",
+  cpi: "CPI inflation",
+  commodities: "Commodities (PPI)",
+  fed_funds: "Fed funds",
+  yield_curve_10y2y: "Yield curve 10Y-2Y",
+  industrial_production: "Industrial prod.",
 };
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
@@ -64,6 +75,31 @@ export default function Investing() {
   const alloc = d.allocation.map((r) => ({ region: String(r.region), pct: Number(r.pct) }));
   const usAlloc = alloc.find((a) => a.region === "US")?.pct ?? 0;
 
+  const macro = d.macro.map((r) => ({
+    series: String(r.series),
+    value: Number(r.latest_value),
+    chg: Number(r.change_90d_pct),
+    dir: String(r.direction),
+  }));
+  const growth = d.regime ? Number(d.regime.growth_yoy) : 0;
+  const infl = d.regime ? Number(d.regime.inflation_yoy) : 0;
+  const growthUp = growth > 0.5;
+  const inflHigh = infl > 2.5;
+  const quadrant = growthUp
+    ? inflHigh
+      ? "Reflation / late-cycle"
+      : "Goldilocks / expansion"
+    : inflHigh
+      ? "Stagflation"
+      : "Deflation / slowdown";
+  const bias = growthUp
+    ? inflHigh
+      ? "Real assets + inflation hedges; moderate risk-on"
+      : "Risk-on; equities favored"
+    : inflHigh
+      ? "Defensive; inflation hedges + cash"
+      : "Defensive; quality + duration";
+
   const refreshed = d.refreshed_at
     ? new Date(d.refreshed_at).toLocaleString("en-US", {
         timeZone: "America/New_York",
@@ -92,6 +128,31 @@ export default function Investing() {
         <Signal label="VYMI (Active)" value={`${vymiPct}%`} target="25-35%" ok={vymiPct >= 25 && vymiPct <= 35} />
         <Signal label="Standard positions" value={`${stdPos}`} target="5-7" ok={stdPos >= 5 && stdPos <= 7} />
         <Signal label="Dry powder" value={`${dryPct}%`} target="flexible" ok={true} />
+      </div>
+
+      {/* macro regime */}
+      <Card className="mt-3">
+        <div className="flex items-baseline justify-between">
+          <span className="text-sm text-zinc-400">Macro regime</span>
+          <span className="text-xs text-zinc-500">
+            growth {growth}% · inflation {infl}%
+          </span>
+        </div>
+        <div className="mt-1 text-2xl font-semibold">{quadrant}</div>
+        <div className="mt-1 text-xs text-zinc-500">{bias}</div>
+      </Card>
+
+      {/* macro indicators */}
+      <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">
+        {macro.map((m) => (
+          <Card key={m.series}>
+            <div className="text-sm text-zinc-400">{MACRO_NAMES[m.series] ?? m.series}</div>
+            <div className="mt-1 text-2xl font-semibold">{m.value.toLocaleString()}</div>
+            <div className="mt-1 text-xs text-zinc-400">
+              {m.dir === "up" ? "▲" : m.dir === "down" ? "▼" : "—"} {Math.abs(m.chg)}% · 90d
+            </div>
+          </Card>
+        ))}
       </div>
 
       {/* geographic allocation bar */}
@@ -154,7 +215,7 @@ export default function Investing() {
       </Card>
 
       <p className="mt-3 text-xs text-zinc-600">
-        Macro regime + 5-indicator monitor coming next (needs a FRED API key).
+        Portfolio from Monarch; macro from FRED. Signals reflect your framework, not advice.
       </p>
     </main>
   );
