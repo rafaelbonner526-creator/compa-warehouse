@@ -7,7 +7,18 @@ export const revalidate = 0;
 export async function GET() {
   try {
     const run = makeRunner();
-    const [indicators, regime, history, meta] = await Promise.all([
+    const [
+      indicators,
+      regime,
+      history,
+      allWeather,
+      equilibrium,
+      bigCycle,
+      propertyCycle,
+      evidenceBands,
+      housePrices,
+      meta,
+    ] = await Promise.all([
       run(
         `SELECT series, latest_value, change_90d_pct, direction FROM \`${P}.gold.mart_macro_indicators\``,
       ),
@@ -15,12 +26,26 @@ export async function GET() {
       run(
         `SELECT series, obs_date, value FROM \`${P}.gold.mart_macro_history\` ORDER BY obs_date`,
       ),
+      run(`SELECT * FROM \`${P}.gold.mart_all_weather\` ORDER BY box_order`),
+      run(`SELECT * FROM \`${P}.gold.mart_macro_equilibrium\``),
+      run(`SELECT * FROM \`${P}.gold.mart_big_cycle\` ORDER BY stage_order`),
+      run(`SELECT * FROM \`${P}.gold.mart_property_cycle\``),
+      run(`SELECT * FROM \`${P}.gold.mart_evidence_bands\` ORDER BY scope_order`),
+      run(
+        `SELECT obs_date, value FROM \`${P}.gold.mart_house_price_history\` ORDER BY obs_date`,
+      ),
       run(`SELECT max(inserted_at) AS refreshed_at FROM \`${P}.bronze._dlt_loads\``),
     ]);
     return NextResponse.json({
       indicators,
       regime: regime[0] ?? null,
       history,
+      allWeather,
+      equilibrium: equilibrium[0] ?? null,
+      bigCycle,
+      propertyCycle: propertyCycle[0] ?? null,
+      evidenceBands,
+      housePrices,
       refreshed_at: meta[0]?.refreshed_at ?? null,
     });
   } catch (e) {
