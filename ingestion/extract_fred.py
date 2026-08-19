@@ -25,6 +25,7 @@ SERIES = {
     "cpi": "CPIAUCSL",  # inflation (level -> YoY downstream)
     "commodities": "PPIACO",  # metals / commodities (PPI all commodities)
     "fed_funds": "DFF",  # central-bank policy
+    "bond_10y": "DGS10",  # 10-year Treasury yield
     "yield_curve_10y2y": "T10Y2Y",  # policy / recession signal
     "industrial_production": "INDPRO",  # growth (regime)
 }
