@@ -30,28 +30,42 @@ WITH boxes AS (
            'Equities, corporate credit'       AS wins
     UNION ALL SELECT 'rising_growth_rising_inflation',   2,
            'Growth up, inflation up',   'rising',  'rising',
-           'Commodities, gold, inflation-linked bonds'
+           'Broad commodities and energy, inflation-linked bonds, value and cyclical stocks'
     UNION ALL SELECT 'falling_growth_falling_inflation', 3,
            'Growth down, inflation down', 'falling', 'falling',
            'Long treasuries, cash'
     UNION ALL SELECT 'falling_growth_rising_inflation',  4,
            'Growth down, inflation up', 'falling', 'rising',
-           'Gold, commodities, inflation-linked bonds'
+           'Gold above all, inflation-linked bonds, cash. Equities do badly here'
 ),
-h AS (SELECT asset_class, market_value FROM {{ ref('stg_holdings') }}),
+h AS (SELECT ticker, asset_class, market_value FROM {{ ref('stg_holdings') }}),
 tot AS (SELECT sum(market_value) AS t FROM h),
-cover AS (
-    SELECT 'rising_growth_falling_inflation' AS box, coalesce(sum(market_value), 0) AS v
+-- One row per (box, holding) so the covering assets can be named. Two boxes
+-- resolving to the SAME asset list is the single most useful thing this model can
+-- say, because it means those two environments share one hedge rather than having
+-- one each. Reporting only the percentage hid that behind two identical numbers.
+memb AS (
+    SELECT 'rising_growth_falling_inflation' AS box, ticker, market_value
     FROM h WHERE asset_class = 'equity'
     UNION ALL
-    SELECT 'rising_growth_rising_inflation', coalesce(sum(market_value), 0)
+    SELECT 'rising_growth_rising_inflation', ticker, market_value
     FROM h WHERE asset_class = 'commodity'
     UNION ALL
-    SELECT 'falling_growth_falling_inflation', coalesce(sum(market_value), 0)
+    SELECT 'falling_growth_falling_inflation', ticker, market_value
     FROM h WHERE asset_class IN ('bond', 'cash')
     UNION ALL
-    SELECT 'falling_growth_rising_inflation', coalesce(sum(market_value), 0)
+    SELECT 'falling_growth_rising_inflation', ticker, market_value
     FROM h WHERE asset_class = 'commodity'
+),
+cover AS (
+    SELECT
+        b.box,
+        coalesce(sum(m.market_value), 0) AS v,
+        string_agg(DISTINCT m.ticker, ', ') AS covering_tickers,
+        count(DISTINCT m.ticker)           AS n_assets
+    FROM (SELECT DISTINCT box FROM memb) b
+    LEFT JOIN memb m ON m.box = b.box
+    GROUP BY b.box
 )
 SELECT
     b.box,
@@ -60,6 +74,8 @@ SELECT
     b.growth,
     b.inflation,
     b.wins,
+    c.covering_tickers,
+    c.n_assets,
     round(c.v)                                  AS covering_value,
     round(100 * c.v / nullif(t.t, 0), 1)        AS covering_pct,
     CASE

@@ -70,13 +70,22 @@ async def main() -> None:
             for e in edges:
                 n = e.get("node") or {}
                 sec = n.get("security") or {}
+                # Monarch leaves security.ticker null on securities it has not fully
+                # matched yet, but the position under node.holdings still carries it.
+                # Falling back matters: a null ticker silently fails the join to
+                # seeds/security_map, so the holding quietly takes default region /
+                # asset_class / sleeve instead of its mapped ones, and disappears
+                # from any ticker-based display. XOM sat in exactly this state.
+                pos = (n.get("holdings") or [{}])[0]
+                ticker = sec.get("ticker") or pos.get("ticker")
                 holdings.append(
                     {
                         "account": a.get("displayName"),
                         "account_id": a.get("id"),
-                        "ticker": sec.get("ticker"),
-                        "name": sec.get("name"),
-                        "security_type": sec.get("type") or sec.get("typeDisplay"),
+                        "ticker": ticker,
+                        "name": sec.get("name") or pos.get("name"),
+                        "security_type": sec.get("type") or sec.get("typeDisplay")
+                        or pos.get("type"),
                         "market_value": n.get("totalValue"),
                         "quantity": n.get("quantity"),
                         "basis": n.get("basis"),

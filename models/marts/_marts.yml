@@ -1,0 +1,35 @@
+version: 2
+
+models:
+  # A null ticker silently fails the join to seeds/security_map, so the holding
+  # quietly falls back to default region / asset_class / sleeve instead of its
+  # mapped ones, and vanishes from any ticker-based display. XOM sat in exactly
+  # that state until the All Weather asset list made it visible. This test makes
+  # the failure loud instead of silent.
+  - name: stg_holdings
+    columns:
+      - name: ticker
+        tests:
+          - not_null
+
+  # Four boxes, always, regardless of holdings.
+  - name: mart_all_weather
+    columns:
+      - name: box
+        tests:
+          - unique
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - rising_growth_falling_inflation
+                  - rising_growth_rising_inflation
+                  - falling_growth_falling_inflation
+                  - falling_growth_rising_inflation
+
+  - name: mart_debasement_signals
+    columns:
+      - name: criterion_order
+        tests:
+          - unique
+          - not_null

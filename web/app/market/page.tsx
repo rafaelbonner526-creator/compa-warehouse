@@ -193,6 +193,17 @@ export default function Market() {
   const current = d.bigCycle.find((s) => s.is_current);
   const declineCount = d.declineSignals.filter((s) => s.points_to_decline === true).length;
 
+  // Two boxes covered by the exact same holdings is the most useful thing this grid
+  // can say: those environments share one hedge instead of having one each. Without
+  // calling it out, it just reads as two identical percentages and looks like a bug.
+  const infl1 = d.allWeather.find((b) => b.box === "rising_growth_rising_inflation");
+  const infl2 = d.allWeather.find((b) => b.box === "falling_growth_rising_inflation");
+  const sharedHedge =
+    infl1?.covering_tickers &&
+    infl1.covering_tickers === infl2?.covering_tickers
+      ? String(infl1.covering_tickers)
+      : null;
+
   const hist: Record<string, { d: string; v: number }[]> = {};
   for (const h of d.history) {
     const s = String(h.series);
@@ -342,6 +353,16 @@ export default function Market() {
                 <p className="mt-1 text-xs text-zinc-500">
                   <span className="text-zinc-600">Wins here:</span> {String(b.wins)}
                 </p>
+                <p className="mt-1 text-xs text-zinc-500">
+                  <span className="text-zinc-600">You hold:</span>{" "}
+                  {b.covering_tickers ? (
+                    <span className="font-mono text-[11px] text-zinc-400">
+                      {String(b.covering_tickers)}
+                    </span>
+                  ) : (
+                    <span className="text-zinc-600">nothing</span>
+                  )}
+                </p>
                 {detail && <p className="mt-1 text-xs text-zinc-500">{detail.mine}</p>}
               </div>
 
@@ -354,6 +375,18 @@ export default function Market() {
           );
         })}
       </div>
+      {sharedHedge && (
+        <div className="mt-3 rounded-xl border border-amber-900/50 bg-amber-950/20 px-4 py-3 text-xs leading-relaxed text-amber-200/80">
+          <strong className="font-semibold text-amber-200">
+            Both inflation boxes show the same number because the same asset covers both.
+          </strong>{" "}
+          <span className="font-mono">{sharedHedge}</span> is your entire inflation protection, in
+          both the growing-and-inflating case and the stalling-and-inflating case. That is one hedge
+          doing two jobs, not two hedges. It is also{" "}
+          {Number(infl1?.covering_pct ?? 0)}% of the portfolio, so it can only move the outcome so
+          much.
+        </div>
+      )}
       <Note>
         Percentages are the share of the total portfolio held in assets that historically win in that
         box, so they do not add to 100: gold counts in both inflationary boxes. International equity
