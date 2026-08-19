@@ -33,7 +33,7 @@ export async function GET() {
     const run = async (sql: string) =>
       clean((await bq.query({ query: sql, location: "US" }))[0]);
 
-    const [sts, networth, cashflow, categories, bills, recent] = await Promise.all([
+    const [sts, networth, cashflow, categories, bills, recent, meta] = await Promise.all([
       run(`SELECT * FROM \`${P}.gold.mart_safe_to_spend\``),
       run(
         `SELECT snapshot_date, net_worth FROM \`${P}.gold.mart_networth\` ORDER BY snapshot_date`,
@@ -54,9 +54,18 @@ export async function GET() {
         `SELECT txn_date, merchant, category, round(amount) AS amount FROM \`${P}.silver.stg_transactions\`
          WHERE NOT hide_from_reports ORDER BY txn_date DESC LIMIT 10`,
       ),
+      run(`SELECT max(inserted_at) AS refreshed_at FROM \`${P}.bronze._dlt_loads\``),
     ]);
 
-    return NextResponse.json({ sts: sts[0], networth, cashflow, categories, bills, recent });
+    return NextResponse.json({
+      sts: sts[0],
+      networth,
+      cashflow,
+      categories,
+      bills,
+      recent,
+      refreshed_at: meta[0]?.refreshed_at ?? null,
+    });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }
