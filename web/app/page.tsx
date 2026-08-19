@@ -25,6 +25,7 @@ type Row = Record<string, string | number | null>;
 type Data = {
   sts: Row;
   networth: Row[];
+  breakdown: Row[];
   cashflow: Row[];
   categories: Row[];
   categoryTrend: Row[];
@@ -97,6 +98,7 @@ export default function Home() {
   const nwNow = nw.length ? nw[nw.length - 1].v : 0;
   const nwPrior = nw.length > 30 ? nw[nw.length - 31].v : nw.length ? nw[0].v : 0;
   const nwChange = nwNow - nwPrior;
+  const breakdown = d.breakdown.map((r) => ({ bucket: String(r.bucket), balance: Number(r.balance) }));
 
   const cf = [...d.cashflow].reverse().map((r) => ({
     month: String(r.month).slice(5, 7),
@@ -133,7 +135,7 @@ export default function Home() {
     : null;
 
   return (
-    <main className="mx-auto max-w-5xl px-5 py-8">
+    <main className="mx-auto max-w-5xl px-5 pb-10 pt-4">
       <div className="flex items-baseline justify-between">
         <h1 className="text-2xl font-semibold">Budget</h1>
         {refreshed && <span className="text-xs text-zinc-500">Last refreshed {refreshed} ET</span>}
@@ -235,6 +237,24 @@ export default function Home() {
           </ResponsiveContainer>
         </Card>
       </div>
+
+      {/* net worth breakdown */}
+      <Card className="mt-3">
+        <div className="mb-3 text-sm font-medium text-zinc-300">Net worth breakdown</div>
+        <div className="grid grid-cols-3 gap-3">
+          {breakdown.map((b) => (
+            <div key={b.bucket}>
+              <div className="text-xs text-zinc-500">{b.bucket}</div>
+              <div
+                className="text-xl font-semibold"
+                style={{ color: b.balance >= 0 ? GREEN : RED }}
+              >
+                {money(b.balance)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
 
       {/* category spend */}
       <Card className="mt-3">

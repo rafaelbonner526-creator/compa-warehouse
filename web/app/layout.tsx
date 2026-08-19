@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import Nav from "@/components/Nav";
 
 export const metadata: Metadata = {
-  title: "COMPA Budget",
-  description: "Personal finance dashboard",
+  title: "COMPA",
+  description: "Personal finance + outreach dashboard",
 };
 
 export default function RootLayout({
@@ -13,7 +14,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-zinc-950 text-zinc-100 antialiased">{children}</body>
+      <body className="bg-zinc-950 text-zinc-100 antialiased">
+        <Nav />
+        {children}
+      </body>
     </html>
   );
 }
