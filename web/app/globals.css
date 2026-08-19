@@ -1,8 +1,14 @@
 @import "tailwindcss";
 
+/* This dashboard is dark by design: every surface uses zinc-800/900 borders with
+   light text. These vars are pinned dark rather than following the OS, because the
+   body rule below is UNLAYERED and therefore beats the layered `bg-zinc-950`
+   utility set in layout.tsx. Following prefers-color-scheme here rendered a white
+   page behind semi-transparent dark cards for anyone on a light-mode OS, which made
+   the smaller zinc-500 body copy nearly unreadable. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 @theme inline {
@@ -10,13 +16,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {

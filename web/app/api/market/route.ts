@@ -17,6 +17,8 @@ export async function GET() {
       propertyCycle,
       evidenceBands,
       housePrices,
+      declineSignals,
+      newsClimate,
       meta,
     ] = await Promise.all([
       run(
@@ -34,6 +36,10 @@ export async function GET() {
       run(
         `SELECT obs_date, value FROM \`${P}.gold.mart_house_price_history\` ORDER BY obs_date`,
       ),
+      run(
+        `SELECT * FROM \`${P}.gold.mart_debasement_signals\` ORDER BY criterion_order`,
+      ),
+      run(`SELECT * FROM \`${P}.gold.mart_news_climate\` ORDER BY ord`),
       run(`SELECT max(inserted_at) AS refreshed_at FROM \`${P}.bronze._dlt_loads\``),
     ]);
     return NextResponse.json({
@@ -46,6 +52,8 @@ export async function GET() {
       propertyCycle: propertyCycle[0] ?? null,
       evidenceBands,
       housePrices,
+      declineSignals,
+      newsClimate,
       refreshed_at: meta[0]?.refreshed_at ?? null,
     });
   } catch (e) {

@@ -41,6 +41,22 @@ SERIES = {
     # 18-year property cycle (Harrison/Anderson). Needs enough history to locate
     # the last trough from the data rather than asserting a date.
     "house_prices": ("CSUSHPINSA", STRUCTURAL_DAYS),  # Case-Shiller US national
+    # Big Cycle stage signals. Debt/GDP alone cannot separate "top of cycle" from
+    # "decline"; Dalio's decline signature is negative real rates + foreign selling
+    # + a falling dollar, so all three are measured rather than assumed.
+    "dollar_index": ("DTWEXBGS", STRUCTURAL_DAYS),  # broad trade-weighted USD
+    "real_rate_10y": ("DFII10", STRUCTURAL_DAYS),  # 10y TIPS yield = real rate
+    "foreign_treasury": ("FDHBFIN", STRUCTURAL_DAYS),  # foreign-held Treasuries
+    # News-derived climate. These are built by counting newspaper coverage
+    # (Baker/Bloom/Davis) or by pricing risk, so they quantify "what the world
+    # feels like" without us scraping headlines. Long windows on purpose: the
+    # marts express each as a percentile of its own ~20-year history, because a
+    # raw VIX of 15 means nothing without knowing where 15 sits.
+    "policy_uncertainty": ("USEPUINDXD", STRUCTURAL_DAYS),  # US EPU, daily, news-count based
+    "global_policy_uncertainty": ("GEPUCURRENT", STRUCTURAL_DAYS),  # global EPU, monthly
+    "financial_stress": ("STLFSI4", STRUCTURAL_DAYS),  # St. Louis Fed stress index
+    "vix": ("VIXCLS", STRUCTURAL_DAYS),  # equity volatility, the market's own fear read
+    "recession_prob": ("RECPROUSM156N", STRUCTURAL_DAYS),  # smoothed recession probability
 }
 
 

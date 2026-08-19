@@ -39,6 +39,14 @@ SERIES = {
     "capacity_utilization": ("TCU", 77.0, 0.05),
     "debt_to_gdp": ("GFDEGDQ188S", 118.0, 0.25),
     "house_prices": ("CSUSHPINSA", 300.0, 1.20),
+    "dollar_index": ("DTWEXBGS", 120.0, -0.08),
+    "real_rate_10y": ("DFII10", 2.00, 0.02),
+    "foreign_treasury": ("FDHBFIN", 9000.0, 12.0),
+    "policy_uncertainty": ("USEPUINDXD", 150.0, 1.10),
+    "global_policy_uncertainty": ("GEPUCURRENT", 200.0, 1.40),
+    "financial_stress": ("STLFSI4", -0.50, -0.01),
+    "vix": ("VIXCLS", 18.0, -0.10),
+    "recession_prob": ("RECPROUSM156N", 1.0, 0.02),
 }
 
 
