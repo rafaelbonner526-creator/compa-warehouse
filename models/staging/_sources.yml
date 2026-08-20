@@ -14,3 +14,7 @@ sources:
       - name: mm_holdings
       # macro (FRED)
       - name: fred_observations
+      # long history (Shiller 1871+, JST 1870+ x18 countries, BoE 1209+)
+      - name: lh_shiller
+      - name: lh_jst
+      - name: lh_boe

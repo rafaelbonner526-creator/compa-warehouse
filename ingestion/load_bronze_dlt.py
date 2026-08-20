@@ -12,7 +12,6 @@ Destination is chosen by WAREHOUSE_TARGET:
 Source dir comes from COMPA_LEADS_DIR (.env). Sources are read-only.
 """
 
-import json
 import os
 from pathlib import Path
 
@@ -20,9 +19,9 @@ import dlt
 import pandas as pd
 from dotenv import load_dotenv
 
-load_dotenv()
+from _destination import get_destination
 
-WAREHOUSE = Path(__file__).parent.parent / "data" / "warehouse.duckdb"
+load_dotenv()
 
 _leads_dir = os.getenv("COMPA_LEADS_DIR")
 if not _leads_dir:
@@ -33,16 +32,6 @@ SOURCES = {
     "leads_master": COMPA_LEADS / "leads-master.csv",
     "touch_log": COMPA_LEADS / "touch-log.csv",
 }
-
-
-def get_destination():
-    """Pick the dlt destination from WAREHOUSE_TARGET (duckdb | bigquery)."""
-    target = os.getenv("WAREHOUSE_TARGET", "duckdb")
-    if target == "bigquery":
-        key_path = os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
-        creds = json.load(open(key_path))
-        return dlt.destinations.bigquery(credentials=creds, location="US")
-    return dlt.destinations.duckdb(str(WAREHOUSE))
 
 
 def load() -> None:

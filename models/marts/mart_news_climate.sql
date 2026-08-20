@@ -6,9 +6,12 @@
 -- numbers instead of vibes, which is the only defensible way to put world news in a
 -- portfolio dashboard.
 --
--- Every value is expressed as a PERCENTILE of its own pulled history (~20 years),
--- because a raw VIX of 15 or an EPU of 182 is meaningless without knowing where
--- that sits. Percentile is computed over the same window for every series.
+-- Every value is expressed as a PERCENTILE of its OWN FULL history, because a raw
+-- VIX of 15 or an EPU of 182 is meaningless without knowing where it sits. The
+-- windows differ by series and that is deliberate: these indices simply started at
+-- different times (EPU 1985, VIX 1990, stress index 1993) and truncating them all
+-- to a common recent window would make every percentile a claim about the wrong
+-- distribution. since_date travels with each row so the UI can state the window.
 --
 -- Deliberately NOT a trading input. It sits at the Big Cycle's cadence.
 WITH obs AS (

@@ -185,7 +185,7 @@ export default function MarketAbout() {
         financial stress index, the VIX, and a smoothed recession probability.
       </P>
       <P>
-        Each is shown as a percentile of its own roughly 20-year history rather than as a raw number,
+        Each is shown as a percentile of its own full history rather than as a raw number,
         because a VIX of 15 or an uncertainty index of 182 means nothing on its own. The percentile
         answers the only question that matters: is this high or not, by its own standards.
       </P>
@@ -256,7 +256,7 @@ export default function MarketAbout() {
       <P>
         <strong className="text-zinc-300">What is measured versus modeled.</strong> The cycle low and
         the years elapsed since are measured from the Case-Shiller national home price index: the model
-        finds the minimum in about 20 years of data rather than being told a date. The 18-year length
+        finds the minimum in the data rather than being told a date. The 18-year length
         and the phase boundaries are the model&apos;s, not the data&apos;s. A warning appears if the
         located low sits at the edge of the available window, since that would mean the position is an
         artifact of where the data starts rather than a real turning point.
@@ -273,13 +273,215 @@ export default function MarketAbout() {
         and 90-day change. Sparklines cover 180 days, so monthly series show only a handful of points.
       </P>
 
+      <H id="crash-patterns">The four patterns before a crash</H>
+      <P>
+        Most major crashes rhyme. Four patterns recur, and the honest position is that only two of
+        them can be measured. The dashboard quantifies those two and leaves the other two as
+        questions, because turning a judgment call into a number would give it a precision it has not
+        earned.
+      </P>
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-xs uppercase tracking-wide text-zinc-500">
+              <th className="pb-2 pr-4 font-medium">Pattern</th>
+              <th className="pb-2 pr-4 font-medium">Measured?</th>
+              <th className="pb-2 font-medium">Where</th>
+            </tr>
+          </thead>
+          <tbody className="text-zinc-400">
+            <tr className="border-t border-zinc-800">
+              <td className="py-2 pr-4">Investor overconfidence</td>
+              <td className="py-2 pr-4 text-emerald-400">Yes</td>
+              <td className="py-2">CAPE percentile over 144 years</td>
+            </tr>
+            <tr className="border-t border-zinc-800">
+              <td className="py-2 pr-4">Debt buildup</td>
+              <td className="py-2 pr-4 text-emerald-400">Yes</td>
+              <td className="py-2">Credit/GDP level and 5-year change over 151 years</td>
+            </tr>
+            <tr className="border-t border-zinc-800">
+              <td className="py-2 pr-4">Regulatory shortcoming</td>
+              <td className="py-2 pr-4 text-amber-400">No</td>
+              <td className="py-2">Judgment. Ask the question below</td>
+            </tr>
+            <tr className="border-t border-zinc-800">
+              <td className="py-2 pr-4">Poorly understood innovation</td>
+              <td className="py-2 pr-4 text-amber-400">No</td>
+              <td className="py-2">Judgment. Ask the question below</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <P>The four questions to ask yourself, since no dashboard can answer them:</P>
+      <ol className="mt-2 space-y-2 text-sm leading-relaxed text-zinc-400">
+        <li>
+          <strong className="text-zinc-300">1. Overconfidence.</strong> Are people buying because of
+          what a thing is worth, or because they expect to flip it to someone else for more tomorrow?
+        </li>
+        <li>
+          <strong className="text-zinc-300">2. Regulation.</strong> Is there a fast-growing market
+          with no guard rails at all? Or are rules being slammed onto a market that is not ready for
+          them?
+        </li>
+        <li>
+          <strong className="text-zinc-300">3. Innovation.</strong> Is money pouring into a new
+          instrument or asset that its own buyers cannot explain? Is anyone saying it is different
+          this time?
+        </li>
+        <li>
+          <strong className="text-zinc-300">4. Debt.</strong> Are people buying with money they do
+          not have, and is the system leaning on borrowed cash?
+        </li>
+      </ol>
+
+      <H id="episodes">Five crashes, and which patterns were present</H>
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-xs uppercase tracking-wide text-zinc-500">
+              <th className="pb-2 pr-4 font-medium">Episode</th>
+              <th className="pb-2 pr-4 font-medium">The innovation</th>
+              <th className="pb-2 font-medium">Patterns</th>
+            </tr>
+          </thead>
+          <tbody className="text-zinc-400">
+            <tr className="border-t border-zinc-800">
+              <td className="py-2 pr-4 whitespace-nowrap">1637 Tulips</td>
+              <td className="py-2 pr-4">Futures contracts</td>
+              <td className="py-2">Overconfidence, innovation</td>
+            </tr>
+            <tr className="border-t border-zinc-800">
+              <td className="py-2 pr-4 whitespace-nowrap">1907 Panic</td>
+              <td className="py-2 pr-4">Investment trusts</td>
+              <td className="py-2">Regulation applied too hard, too late</td>
+            </tr>
+            <tr className="border-t border-zinc-800">
+              <td className="py-2 pr-4 whitespace-nowrap">1929 Crash</td>
+              <td className="py-2 pr-4">Leveraged investment trusts</td>
+              <td className="py-2">All four. Regulation barely acted at all</td>
+            </tr>
+            <tr className="border-t border-zinc-800">
+              <td className="py-2 pr-4 whitespace-nowrap">1987 Black Monday</td>
+              <td className="py-2 pr-4">Portfolio insurance</td>
+              <td className="py-2">Innovation nobody understood, plus leverage mania</td>
+            </tr>
+            <tr className="border-t border-zinc-800">
+              <td className="py-2 pr-4 whitespace-nowrap">2008 GFC</td>
+              <td className="py-2 pr-4">Mortgage-backed securities, CDOs</td>
+              <td className="py-2">All four, with debt as the amplifier</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <Small>
+        The common thread is not that the assets were worthless. Tulips were genuinely rare, houses
+        genuinely useful, portfolio insurance genuinely clever. It is that the price stopped being
+        about the thing and started being about the next buyer, usually with borrowed money, inside a
+        structure nobody had fully modelled.
+      </Small>
+
+      <H id="valuation">Valuation, and why 144 years</H>
+      <P>
+        CAPE is price divided by ten years of inflation-adjusted earnings, so one exceptional year
+        cannot flatter it the way a trailing P/E can. Robert Shiller&apos;s dataset runs monthly from
+        1871.
+      </P>
+      <P>
+        The long window is the entire point. Measured against the last 20 years, a CAPE in the
+        mid-30s looks moderately expensive, because that window contains the dot-com hangover and the
+        post-2009 re-rating. Measured against 144 years it sits above where the market stood before
+        the 1929 crash. Same number, opposite conclusion. This is the clearest single argument on the
+        page for using all the history that exists.
+      </P>
+      <Small>
+        What it is not: a timing signal. Expensive markets have stayed expensive for years and CAPE
+        has a poor record of calling tops. It tells you what you are paying, not what happens next.
+        Shiller&apos;s file is revised periodically, so the reading carries its own as-of date.
+      </Small>
+
+      <H id="credit">Debt buildup, and why 151 years</H>
+      <P>
+        The Jordà-Schularick-Taylor Macrohistory Database covers 18 advanced economies annually from
+        1870: credit, house prices, public debt, and asset returns. It is the standard academic source
+        for questions that need more than one business cycle.
+      </P>
+      <P>
+        Private credit and public debt are shown separately and never summed, because they fail
+        differently. The crashes that define generations, 1929 and 2008, were private credit events.
+        Sovereign debt crises behave differently and hit through the currency.
+      </P>
+      <P>
+        The 5-year change matters more than the level. A high but stable ratio is an economy that has
+        adjusted to its debt. Rapid growth is a boom being financed, and roughly 10 percentage points
+        of growth in five years is the threshold above which credit expansions have historically
+        preceded banking trouble.
+      </P>
+
+      <H id="long-history">Why the long windows differ by section</H>
+      <P>
+        Different series simply exist for different lengths of time, and the page uses all of each
+        rather than truncating everything to the shortest.
+      </P>
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-xs uppercase tracking-wide text-zinc-500">
+              <th className="pb-2 pr-4 font-medium">Section</th>
+              <th className="pb-2 pr-4 font-medium">Window</th>
+              <th className="pb-2 font-medium">Source</th>
+            </tr>
+          </thead>
+          <tbody className="text-zinc-400">
+            <tr className="border-t border-zinc-800">
+              <td className="py-2 pr-4">Property cycle test</td>
+              <td className="py-2 pr-4">1870-2020, 18 countries</td>
+              <td className="py-2">JST Macrohistory</td>
+            </tr>
+            <tr className="border-t border-zinc-800">
+              <td className="py-2 pr-4">Valuation</td>
+              <td className="py-2 pr-4">1871-present, monthly</td>
+              <td className="py-2">Shiller</td>
+            </tr>
+            <tr className="border-t border-zinc-800">
+              <td className="py-2 pr-4">Credit and public debt</td>
+              <td className="py-2 pr-4">1870-2020</td>
+              <td className="py-2">JST Macrohistory</td>
+            </tr>
+            <tr className="border-t border-zinc-800">
+              <td className="py-2 pr-4">UK reference series</td>
+              <td className="py-2 pr-4">1209-2016 for prices, ~1700 for the rest</td>
+              <td className="py-2">Bank of England millennium dataset</td>
+            </tr>
+            <tr className="border-t border-zinc-800">
+              <td className="py-2 pr-4">Regime, equilibriums, indicators</td>
+              <td className="py-2 pr-4">2-20 years</td>
+              <td className="py-2">FRED, daily</td>
+            </tr>
+            <tr className="border-t border-zinc-800">
+              <td className="py-2 pr-4">News climate</td>
+              <td className="py-2 pr-4">full series: 1985, 1990, 1993 starts</td>
+              <td className="py-2">Cannot be extended, indices did not exist</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <Small>
+        Long-history sources are static research datasets revised once a year at most, so they load on
+        their own path rather than the daily FRED refresh, and each reading carries its own as-of
+        date. Where a series ends before today, the dashboard says so instead of implying the number
+        is current.
+      </Small>
+
       <H id="sources">Sources</H>
       <Small>
         All macro data from FRED (Federal Reserve Bank of St. Louis), refreshed daily. Holdings from
         Monarch. Research: Anarkulova, Cederburg &amp; O&apos;Doherty, &quot;Beyond the Status Quo: A
         Critical Assessment of Lifecycle Investment Advice&quot; (2025). Ray Dalio, economic principles
         and the changing world order. Ben Felix, Diary of a CEO, April 2026. Baker, Bloom &amp; Davis
-        for the policy uncertainty indices. Fred Harrison and Phil Anderson for the property cycle.
+        for the policy uncertainty indices. Fred Harrison and Phil Anderson for the property cycle. Long history: Robert Shiller (US equities
+        from 1871), Jordà, Schularick &amp; Taylor Macrohistory Database (18 countries from 1870), and
+        the Bank of England&apos;s "A millennium of macroeconomic data for the UK".
       </Small>
       <div className="mt-8">
         <Link href="/market" className="text-xs text-indigo-400 underline-offset-2 hover:underline">

@@ -5,6 +5,9 @@ import { useEffect, useState } from "react";
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
+  Cell,
   Line,
   LineChart,
   ReferenceArea,
@@ -33,6 +36,10 @@ type Data = {
   housePrices: Row[];
   declineSignals: Row[];
   newsClimate: Row[];
+  valuation: Row | null;
+  valuationRef: Row[];
+  creditCycle: Row | null;
+  cycleIntervals: Row[];
   refreshed_at: string | null;
 };
 
@@ -146,6 +153,24 @@ function SectionHead({
   );
 }
 
+// 1st / 2nd / 3rd / 4th..., including the 11-13 exceptions that a naive
+// last-digit rule gets wrong.
+function ordinal(n: number): string {
+  const v = Math.round(n);
+  const rem100 = v % 100;
+  if (rem100 >= 11 && rem100 <= 13) return `${v}th`;
+  switch (v % 10) {
+    case 1:
+      return `${v}st`;
+    case 2:
+      return `${v}nd`;
+    case 3:
+      return `${v}rd`;
+    default:
+      return `${v}th`;
+  }
+}
+
 function levelTone(level: string) {
   return level === "extreme"
     ? "text-red-400"
@@ -196,6 +221,8 @@ export default function Market() {
   // Two boxes covered by the exact same holdings is the most useful thing this grid
   // can say: those environments share one hedge instead of having one each. Without
   // calling it out, it just reads as two identical percentages and looks like a bug.
+  const val = d.valuation;
+  const cc = d.creditCycle;
   const infl1 = d.allWeather.find((b) => b.box === "rising_growth_rising_inflation");
   const infl2 = d.allWeather.find((b) => b.box === "falling_growth_rising_inflation");
   const sharedHedge =
@@ -502,7 +529,7 @@ export default function Market() {
             How much of the country&apos;s factories and equipment are actually in use. Run above the
             long-run average and you get bottlenecks and inflation. Run below it and you have idle
             workers and machines, which is slack. Average computed over{" "}
-            {eq?.capacity_n_obs ? String(eq.capacity_n_obs) : "?"} monthly readings, about 20 years.
+            {eq?.capacity_n_obs ? String(eq.capacity_n_obs) : "?"} monthly readings, the full series since 1967.
           </Note>
         </Card>
         <Card>
@@ -537,7 +564,7 @@ export default function Market() {
       {/* ---------- news climate ---------- */}
       <SectionHead
         title="What the world feels like"
-        sub="World news, quantified. Two of these are built by literally counting newspaper articles; the other three are markets pricing their own fear. Each is shown as a percentile of its own 20-year history, because a raw number tells you nothing about whether it is high."
+        sub="World news, quantified. Two of these are built by literally counting newspaper articles; the other three are markets pricing their own fear. Each is shown as a percentile of its own full history, because a raw number tells you nothing about whether it is high."
         anchor="news"
       />
       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -551,7 +578,7 @@ export default function Market() {
                 <span className="text-lg font-semibold tabular-nums">{Number(n.latest_value)}</span>
               </div>
               <div className={`mt-1 text-xs font-medium uppercase tracking-wide ${levelTone(level)}`}>
-                {level} · {pctile}th percentile
+                {level} · {ordinal(pctile)} percentile
               </div>
               <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
                 <div
@@ -568,6 +595,11 @@ export default function Market() {
                 />
               </div>
               <p className="mt-2 text-xs leading-relaxed text-zinc-500">{String(n.explanation)}</p>
+              {n.since_date && (
+                <p className="mt-1 text-[11px] text-zinc-600">
+                  percentile vs {String(n.since_date).slice(0, 4)}-present
+                </p>
+              )}
             </Card>
           );
         })}
@@ -578,6 +610,136 @@ export default function Market() {
         expect to be paid, not what is upsetting. This section exists as slow context for the Big Cycle
         below, and is explicitly not a trading input.
       </Note>
+      <Note>
+        These windows are short and cannot be lengthened. The uncertainty indices begin in 1985, the
+        VIX in 1990, the stress index in 1993, because none of them existed before that. Where a
+        longer history does exist, as with valuation and debt below, this page uses all of it.
+      </Note>
+
+      {/* ---------- valuation (144y) ---------- */}
+      <SectionHead
+        title="Valuation, in 144 years of context"
+        sub="Are people paying a sane price for company earnings? This is the crash pattern that shows up first: buying because it went up, not because of what it is worth."
+        anchor="valuation"
+      />
+      {val && (
+        <Card className="mt-3">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <div className="text-xs uppercase tracking-wide text-zinc-500">CAPE ratio</div>
+              <div className="flex items-baseline gap-3">
+                <span className="text-4xl font-semibold">{Number(val.cape)}</span>
+                <span className={`text-sm font-medium uppercase tracking-wide ${levelTone(String(val.level))}`}>
+                  {String(val.level)} · {ordinal(Number(val.percentile))} percentile
+                </span>
+              </div>
+              <div className="mt-1 text-xs text-zinc-500">
+                of {Number(val.n_obs).toLocaleString()} months since {String(val.since_year)}. Long-run
+                median {Number(val.median_cape)}.
+              </div>
+            </div>
+            <div className="text-right text-xs text-zinc-500">
+              as of {String(val.as_of_year)}-{String(val.as_of_month).padStart(2, "0")}
+            </div>
+          </div>
+
+          <div className="mt-5 space-y-2">
+            {[
+              { label: "Now", cape: Number(val.cape), now: true },
+              ...d.valuationRef.map((x) => ({
+                label: `${String(x.label)}`,
+                cape: Number(x.cape),
+                now: false,
+              })),
+            ]
+              .sort((a, b) => b.cape - a.cape)
+              .map((x) => (
+                <div key={x.label} className="flex items-center gap-3">
+                  <span className={`w-32 shrink-0 text-xs ${x.now ? "font-semibold text-indigo-300" : "text-zinc-500"}`}>
+                    {x.label}
+                  </span>
+                  <div className="h-4 flex-1 overflow-hidden rounded bg-zinc-800/60">
+                    <div
+                      className={`h-full rounded ${x.now ? "bg-indigo-500" : "bg-zinc-600"}`}
+                      style={{ width: `${(x.cape / Number(val.max_cape)) * 100}%` }}
+                    />
+                  </div>
+                  <span className={`w-10 shrink-0 text-right text-xs tabular-nums ${x.now ? "font-semibold text-indigo-300" : "text-zinc-500"}`}>
+                    {x.cape}
+                  </span>
+                </div>
+              ))}
+          </div>
+          <Note>
+            CAPE divides price by ten years of inflation-adjusted earnings, so a single good year
+            cannot flatter it. This is the clearest argument for long history on the whole page:
+            against the last 20 years today looks merely expensive, and against 144 years it sits
+            above where the market stood before the 1929 crash. That is not a prediction. Expensive
+            markets have stayed expensive for years, and CAPE has been a poor timing tool. It says
+            what you are paying, not what happens next.
+          </Note>
+        </Card>
+      )}
+
+      {/* ---------- credit (151y) ---------- */}
+      <SectionHead
+        title="Debt buildup, in 151 years of context"
+        sub="The fourth crash pattern, and the one that turns an ordinary bubble into a generational downturn. What matters more than the level is how fast it is growing."
+        anchor="credit"
+      />
+      {cc && (
+        <div className="mt-3 grid gap-3 md:grid-cols-3">
+          <Card>
+            <span className="text-sm text-zinc-400">Private credit / GDP</span>
+            <div className="mt-1 text-3xl font-semibold">{Number(cc.credit_to_gdp)}%</div>
+            <div className={`text-xs font-medium uppercase tracking-wide ${levelTone(String(cc.level))}`}>
+              {String(cc.level)} · {ordinal(Number(cc.credit_percentile))} percentile
+            </div>
+            <Note>
+              Bank lending to households and firms, against its own history since{" "}
+              {String(cc.since_year)}. This is the debt that drove 1929 and 2008.
+            </Note>
+          </Card>
+          <Card>
+            <span className="text-sm text-zinc-400">5-year change</span>
+            <div className="mt-1 text-3xl font-semibold">
+              {Number(cc.credit_change_5y) >= 0 ? "+" : ""}
+              {Number(cc.credit_change_5y)}pp
+            </div>
+            <div
+              className={`text-xs font-medium uppercase tracking-wide ${
+                String(cc.credit_trend) === "boom"
+                  ? "text-amber-400"
+                  : String(cc.credit_trend) === "deleveraging"
+                    ? "text-emerald-400"
+                    : "text-zinc-400"
+              }`}
+            >
+              {String(cc.credit_trend)}
+            </div>
+            <Note>
+              Speed beats level as a warning sign. Roughly 10pp of growth in five years is the
+              threshold above which credit expansions have historically preceded banking trouble.
+            </Note>
+          </Card>
+          <Card>
+            <span className="text-sm text-zinc-400">Public debt / GDP</span>
+            <div className="mt-1 text-3xl font-semibold">{Number(cc.public_debt_to_gdp)}%</div>
+            <div className="text-xs text-zinc-500">government borrowing</div>
+            <Note>
+              Kept separate from private credit on purpose. Sovereign debt crises and private credit
+              busts behave differently, so the two are never summed.
+            </Note>
+          </Card>
+        </div>
+      )}
+      {cc && (
+        <Note>
+          Source data ends {String(cc.until_year)}, so this is a structural read rather than a current
+          one. The live debt-to-GDP figure in the Big Cycle section below comes from FRED and is
+          current.
+        </Note>
+      )}
 
       {/* ---------- big cycle ---------- */}
       <SectionHead
@@ -709,7 +871,7 @@ export default function Market() {
       {/* ---------- 18-year property cycle ---------- */}
       <SectionHead
         title="18-year property cycle"
-        sub="Land and property have moved in a repeating ~18-year rhythm for roughly two centuries: a long recovery, a mid-cycle wobble, a bigger boom, a mania, then a crash. Measured here against real US home prices."
+        sub="A repeating rhythm of roughly 18 years: long recovery, mid-cycle wobble, bigger boom, mania, crash. Below, the model is tested against 151 years of real house prices across 18 countries rather than assumed."
         anchor="property-cycle"
       />
       <Card className="mt-3">
@@ -770,8 +932,94 @@ export default function Market() {
               </div>
               <div className="mt-1 flex justify-between text-[10px] text-zinc-600">
                 <span>{troughYear} low</span>
-                <span>{troughYear + 18} projected next low</span>
+                <span>{troughYear + 18} next low, if the model&apos;s 18 years holds</span>
               </div>
+            </div>
+
+            {/* does the 18-year cycle actually exist? */}
+            <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="text-sm font-medium text-zinc-300">
+                  Does the 18-year cycle actually exist?
+                </span>
+                <span className="text-xs text-zinc-500">
+                  {Number(pc.n_intervals)} intervals · {Number(pc.n_countries)} countries · 1870-2020
+                </span>
+              </div>
+
+              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                <div>
+                  <div className="text-2xl font-semibold text-emerald-400">
+                    {Number(pc.measured_median)}y
+                  </div>
+                  <div className="text-xs text-zinc-500">
+                    measured median (mean {Number(pc.measured_mean)}y)
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-semibold text-amber-400">
+                    ±{Number(pc.measured_sd)}y
+                  </div>
+                  <div className="text-xs text-zinc-500">
+                    standard deviation, range {Number(pc.measured_min)}-{Number(pc.measured_max)}y
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-semibold text-amber-400">
+                    {Number(pc.pct_within_16_20)}%
+                  </div>
+                  <div className="text-xs text-zinc-500">of cycles actually landed in 16-20 years</div>
+                </div>
+              </div>
+
+              {d.cycleIntervals.length > 0 && (
+                <div className="mt-4">
+                  <div className="mb-1 text-xs text-zinc-500">
+                    Distribution of every measured interval. Gold marks the 16-20 year window the
+                    model claims.
+                  </div>
+                  <ResponsiveContainer width="100%" height={110}>
+                    <BarChart data={d.cycleIntervals.map((x) => ({
+                      y: Number(x.interval_years),
+                      n: Number(x.n),
+                    }))}>
+                      <XAxis dataKey="y" tick={{ fill: "#71717a", fontSize: 10 }} interval={2} />
+                      <YAxis tick={{ fill: "#71717a", fontSize: 10 }} width={22} allowDecimals={false} />
+                      <Tooltip
+                        contentStyle={{ background: "#18181b", border: "1px solid #3f3f46", borderRadius: 12 }}
+                        labelFormatter={(v) => `${v} year interval`}
+                        formatter={(v) => [`${v} cycles`, ""]}
+                      />
+                      <Bar dataKey="n">
+                        {d.cycleIntervals.map((x, i) => {
+                          const y = Number(x.interval_years);
+                          return <Cell key={i} fill={y >= 16 && y <= 20 ? AMBER : "#52525b"} />;
+                        })}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              <p className="mt-3 text-xs leading-relaxed text-zinc-400">
+                <strong className="text-zinc-200">The verdict is split.</strong> The model&apos;s
+                headline number is genuinely right on average: a measured median of{" "}
+                {Number(pc.measured_median)} years and mean of {Number(pc.measured_mean)} against a
+                claimed 18 is a close match, and not something you would get from noise. But the
+                spread is enormous. Only {Number(pc.pct_within_16_20)}% of real cycles landed in the
+                16-20 year window, and they ranged from {Number(pc.measured_min)} to{" "}
+                {Number(pc.measured_max)} years. It describes the average well and predicts any
+                individual cycle badly.
+              </p>
+              <p className="mt-2 text-xs leading-relaxed text-zinc-400">
+                <strong className="text-zinc-200">The US is the worst case.</strong> Its{" "}
+                {Number(pc.usa_n_intervals)} measured intervals averaged {Number(pc.usa_mean)} years
+                and ran from {Number(pc.usa_min)} to {Number(pc.usa_max)}. Applied to the current
+                cycle, the measured quartiles put the next low anywhere between{" "}
+                <strong className="text-zinc-300">{Number(pc.next_low_earliest)}</strong> and{" "}
+                <strong className="text-zinc-300">{Number(pc.next_low_latest)}</strong>, and the
+                earlier of those is already behind us.
+              </p>
             </div>
 
             {/* price chart: pre-cycle greyed, current cycle highlighted */}

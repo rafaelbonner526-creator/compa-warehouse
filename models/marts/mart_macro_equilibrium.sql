@@ -3,8 +3,11 @@
 -- 1. Debt vs income      -- federal debt as % of GDP, level and 1-year change.
 -- 2. Capacity            -- capacity utilization vs its own long-run average.
 --                           "Long-run" = the mean over the pulled window, which
---                           extract_fred deliberately sets to ~20 years for this
---                           series so the average means something.
+--                           extract_fred pulls in full for this series (1967+), so
+--                           the average is a real long-run reference. Against a
+--                           20-year window capacity looked normal; against its full
+--                           history there is meaningful slack, because utilization
+--                           has trended down structurally.
 -- 3. Risk-premium stack  -- cash < government bonds < corporate credit. Dalio's
 --                           point is that the stack must slope upward; an inversion
 --                           anywhere is a tightening / late-cycle signal.

@@ -19,6 +19,10 @@ export async function GET() {
       housePrices,
       declineSignals,
       newsClimate,
+      valuation,
+      valuationRef,
+      creditCycle,
+      cycleIntervals,
       meta,
     ] = await Promise.all([
       run(
@@ -40,6 +44,15 @@ export async function GET() {
         `SELECT * FROM \`${P}.gold.mart_debasement_signals\` ORDER BY criterion_order`,
       ),
       run(`SELECT * FROM \`${P}.gold.mart_news_climate\` ORDER BY ord`),
+      run(`SELECT * FROM \`${P}.gold.mart_valuation\``),
+      run(`SELECT * FROM \`${P}.gold.mart_valuation_reference\` ORDER BY ord`),
+      run(`SELECT * FROM \`${P}.gold.mart_credit_cycle\` WHERE entity = 'USA'`),
+      run(
+        `SELECT interval_years, count(*) AS n
+         FROM \`${P}.gold.mart_property_cycle_intervals\`
+         WHERE interval_years IS NOT NULL
+         GROUP BY interval_years ORDER BY interval_years`,
+      ),
       run(`SELECT max(inserted_at) AS refreshed_at FROM \`${P}.bronze._dlt_loads\``),
     ]);
     return NextResponse.json({
@@ -54,6 +67,10 @@ export async function GET() {
       housePrices,
       declineSignals,
       newsClimate,
+      valuation: valuation[0] ?? null,
+      valuationRef,
+      creditCycle: creditCycle[0] ?? null,
+      cycleIntervals,
       refreshed_at: meta[0]?.refreshed_at ?? null,
     });
   } catch (e) {
