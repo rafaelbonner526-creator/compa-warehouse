@@ -14,6 +14,8 @@ type Data = {
   allocation: Row[];
   positions: Row[];
   regime: Row | null;
+  actions: Row[];
+  bands: Row[];
   refreshed_at: string | null;
 };
 
@@ -36,6 +38,13 @@ function Signal({ label, value, target, ok }: { label: string; value: string; ta
   );
 }
 
+// Dollar amounts round to whole; percentages keep their decimal. "$6,343.7" is
+// not a number anyone writes.
+function fmt(v: number, unit: string): string {
+  if (unit === "$") return `$${Math.round(v).toLocaleString("en-US")}`;
+  return `${v}${unit}`;
+}
+
 type Action = { level: "high" | "med" | "ok"; text: string };
 const LEVEL_COLOR = { high: RED, med: AMBER, ok: GREEN };
 
@@ -54,8 +63,14 @@ export default function Portfolio() {
   if (!d) return <main className="p-8 text-zinc-500">Loading…</main>;
 
   const s = d.signals;
-  const usPct = Number(s.us_equity_pct);
-  const intlPct = Number(s.intl_equity_pct);
+  // Band checks must use the ACTIVE-account split, not the all-account blend.
+  // mart_portfolio_signals reports combined; the 50-55% band is defined on Active.
+  // Showing 54.0% against an Active band was two different numbers under one label.
+  const active = d.bands.find((b) => String(b.scope) === "Active");
+  const usPct = active ? Number(active.us_pct) : Number(s.us_equity_pct);
+  const intlPct = active ? Number(active.intl_pct) : Number(s.intl_equity_pct);
+  const bandMin = active ? Number(active.band_min) : 50;
+  const bandMax = active ? Number(active.band_max) : 55;
   const bondPct = Number(s.bond_pct);
   const vymiPct = Number(s.vymi_pct_active);
   const dryPct = Number(s.dry_powder_pct);
@@ -81,20 +96,22 @@ export default function Portfolio() {
   const infl = d.regime ? Number(d.regime.inflation_yoy) : 0;
   const reflation = growth > 0.5 && infl > 2.5;
 
-  // --- next best actions (framework-grounded, not advice) ---
-  const actions: Action[] = [];
+  // Actions come from mart_portfolio_actions so the rules live in ONE place and
+  // cannot drift from the Market tab. The old inline list hardcoded a 50-65% band
+  // that had already been tightened to 50-55%.
+  const acts = d.actions.map((a) => ({
+    status: String(a.status),
+    severity: Number(a.severity),
+    area: String(a.area),
+    title: String(a.title),
+    detail: String(a.detail),
+    current: Number(a.current_value),
+    target: Number(a.target_value),
+    unit: String(a.unit),
+  }));
+  const todo = acts.filter((a) => a.status === "act");
+  const passing = acts.filter((a) => a.status !== "act");
   const smallestStd = positions.filter((p) => p.sleeve === "standard").sort((a, b) => a.pct - b.pct)[0];
-  if (stdPos > 7 && smallestStd)
-    actions.push({ level: "high", text: `Consolidate: ${stdPos} standard positions vs your 5-7 limit. Trim or merge the smallest (${smallestStd.ticker} at ${smallestStd.pct}%).` });
-  positions.filter((p) => p.over).forEach((p) =>
-    actions.push({ level: "high", text: `Trim ${p.ticker}: ${p.pct}% exceeds its ${p.cap}% cap.` }));
-  if (bondPct > 0) actions.push({ level: "high", text: `Sell bonds: ${bondPct}% vs your 0% framework target.` });
-  if (usPct > 65) actions.push({ level: "med", text: `US equity ${usPct}% is above your 50-65% band, add international on the next contribution.` });
-  if (usPct < 50) actions.push({ level: "med", text: `US equity ${usPct}% is below your 50-65% band, add US on the next contribution.` });
-  if (vymiPct < 25) actions.push({ level: "med", text: `VYMI ${vymiPct}% is below your 25-35% target, build it via contributions.` });
-  if (vymiPct > 35) actions.push({ level: "med", text: `VYMI ${vymiPct}% exceeds 35%, trim on next rebalance.` });
-  if (actions.length === 0)
-    actions.push({ level: "ok", text: "Portfolio is aligned with your framework. No rebalancing needed, keep contributing." });
 
   const marketNote = reflation
     ? `The regime is reflationary (growth +${growth}%, inflation +${infl}%). Your international tilt (${intlPct}%), dividend/value exposure (VYMI ${vymiPct}%), and gold hedge fit this backdrop; expensive US growth is the main risk to watch.`
@@ -120,22 +137,122 @@ export default function Portfolio() {
 
       {/* next best actions */}
       <Card className="mt-6">
-        <div className="mb-3 text-sm font-medium text-zinc-300">Next best actions</div>
-        <ul className="space-y-2.5">
-          {actions.map((a, i) => (
-            <li key={i} className="flex gap-3 text-sm">
-              <span className="mt-1.5 inline-block h-2 w-2 flex-shrink-0 rounded-full" style={{ background: LEVEL_COLOR[a.level] }} />
-              <span className="text-zinc-300">{a.text}</span>
+        <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
+          <span className="text-sm font-medium text-zinc-300">Do this next</span>
+          <span className="text-xs text-zinc-500">
+            {todo.length} to act on · {passing.length} rules passing
+          </span>
+        </div>
+        <p className="mb-3 text-xs text-zinc-500">
+          Every rule below comes from your written thesis, checked against live holdings. Ranked by
+          urgency: act now, then the quarterly rebalance, then watch.
+        </p>
+
+        {todo.length === 0 && (
+          <p className="text-sm text-emerald-400">
+            Every framework rule passes. Keep contributing, change nothing.
+          </p>
+        )}
+
+        <ul className="space-y-3">
+          {todo.map((a, i) => (
+            <li key={i} className="flex gap-3">
+              <span
+                className="mt-1.5 inline-block h-2 w-2 flex-shrink-0 rounded-full"
+                style={{ background: a.severity === 1 ? RED : a.severity === 2 ? AMBER : ACCENT }}
+              />
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-baseline gap-2">
+                  <span className="text-sm font-medium text-zinc-200">{a.title}</span>
+                  <span className="text-xs tabular-nums text-zinc-500">
+                    now {fmt(a.current, a.unit)}
+                    {" · target "}
+                    {fmt(a.target, a.unit)}
+                  </span>
+                  <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] uppercase tracking-wide text-zinc-400">
+                    {a.severity === 1 ? "now" : a.severity === 2 ? "rebalance" : "watch"}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-xs leading-relaxed text-zinc-500">{a.detail}</p>
+                {a.title === "Consolidate standard positions" && smallestStd && (
+                  <p className="mt-0.5 text-xs text-zinc-500">
+                    Smallest standard position is{" "}
+                    <strong className="text-zinc-400">{smallestStd.ticker}</strong> at {smallestStd.pct}%.
+                  </p>
+                )}
+              </div>
             </li>
           ))}
         </ul>
+
+        {passing.length > 0 && (
+          <details className="mt-4 border-t border-zinc-800 pt-3">
+            <summary className="cursor-pointer text-xs text-zinc-500">
+              {passing.length} rules currently passing
+            </summary>
+            <ul className="mt-2 space-y-1">
+              {passing.map((a, i) => (
+                <li key={i} className="flex items-baseline justify-between gap-3 text-xs text-zinc-500">
+                  <span>✓ {a.title}</span>
+                  <span className="tabular-nums">{fmt(a.current, a.unit)}</span>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+
         <p className="mt-4 border-t border-zinc-800 pt-3 text-sm leading-relaxed text-zinc-400">{marketNote}</p>
+      </Card>
+
+      {/* band by scope */}
+      <Card className="mt-3">
+        <div className="mb-2 text-sm font-medium text-zinc-300">US / International by account</div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs uppercase tracking-wide text-zinc-500">
+                <th className="pb-2 pr-4 font-medium">Scope</th>
+                <th className="pb-2 pr-4 text-right font-medium">Equity</th>
+                <th className="pb-2 pr-4 text-right font-medium">US</th>
+                <th className="pb-2 pr-4 text-right font-medium">Intl</th>
+                <th className="pb-2 font-medium">vs band</th>
+              </tr>
+            </thead>
+            <tbody className="text-zinc-300">
+              {d.bands.map((b) => (
+                <tr key={String(b.scope)} className="border-t border-zinc-800">
+                  <td className="py-2 pr-4 font-medium">{String(b.scope)}</td>
+                  <td className="py-2 pr-4 text-right tabular-nums text-zinc-400">
+                    ${Number(b.equity_value).toLocaleString()}
+                  </td>
+                  <td className="py-2 pr-4 text-right tabular-nums">{Number(b.us_pct)}%</td>
+                  <td className="py-2 pr-4 text-right tabular-nums text-zinc-400">{Number(b.intl_pct)}%</td>
+                  <td className="py-2">
+                    {b.in_alto_band ? (
+                      <span className="text-emerald-400">in band</span>
+                    ) : (
+                      <span className="text-amber-400">
+                        {Number(b.pct_over_ceiling) > 0
+                          ? `${Number(b.pct_over_ceiling)}pp over`
+                          : "below floor"}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-2 text-xs text-zinc-500">
+          The {bandMin}-{bandMax}% band applies to the Active account. Combined includes Acorns and the
+          Roth, so it reads differently and is not what the rule is judged on.
+        </p>
       </Card>
 
       {/* signals */}
       <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <Signal label="US equity" value={`${usPct}%`} target="50-65%" ok={usPct >= 50 && usPct <= 65} />
-        <Signal label="Intl equity" value={`${intlPct}%`} target="35-50%" ok={intlPct >= 35 && intlPct <= 50} />
+        <Signal label="US equity (Active)" value={`${usPct}%`} target={`${bandMin}-${bandMax}%`} ok={usPct >= bandMin && usPct <= bandMax} />
+        <Signal label="Intl equity (Active)" value={`${intlPct}%`} target={`${100 - bandMax}-${100 - bandMin}%`} ok={intlPct >= 100 - bandMax && intlPct <= 100 - bandMin} />
         <Signal label="Bonds" value={`${bondPct}%`} target="0%" ok={bondPct === 0} />
         <Signal label="VYMI (Active)" value={`${vymiPct}%`} target="25-35%" ok={vymiPct >= 25 && vymiPct <= 35} />
         <Signal label="Standard positions" value={`${stdPos}`} target="5-7" ok={stdPos >= 5 && stdPos <= 7} />

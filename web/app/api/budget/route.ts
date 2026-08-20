@@ -19,6 +19,7 @@ export async function GET() {
       recent,
       runway,
       recurring,
+      budget,
       meta,
     ] = await Promise.all([
       run(`SELECT * FROM \`${P}.gold.mart_safe_to_spend\``),
@@ -45,6 +46,7 @@ export async function GET() {
       ),
       run(`SELECT * FROM \`${P}.gold.mart_runway\``),
       run(`SELECT * FROM \`${P}.gold.mart_recurring_summary\``),
+      run(`SELECT * FROM \`${P}.gold.mart_budget_vs_actual\``),
       run(`SELECT max(inserted_at) AS refreshed_at FROM \`${P}.bronze._dlt_loads\``),
     ]);
 
@@ -60,6 +62,7 @@ export async function GET() {
       recent,
       runway: runway[0] ?? null,
       recurring: recurring[0] ?? null,
+      budget,
       refreshed_at: meta[0]?.refreshed_at ?? null,
     });
   } catch (e) {

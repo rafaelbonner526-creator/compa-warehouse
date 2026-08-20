@@ -7,7 +7,8 @@ export const revalidate = 0;
 export async function GET() {
   try {
     const run = makeRunner();
-    const [signals, allocation, positions, macro, regime, meta] = await Promise.all([
+    const [signals, allocation, positions, macro, regime, actions, bands, meta] =
+      await Promise.all([
       run(`SELECT * FROM \`${P}.gold.mart_portfolio_signals\``),
       run(`SELECT region, value, pct FROM \`${P}.gold.mart_allocation\``),
       run(
@@ -18,6 +19,8 @@ export async function GET() {
         `SELECT series, latest_value, change_90d_pct, direction FROM \`${P}.gold.mart_macro_indicators\``,
       ),
       run(`SELECT * FROM \`${P}.gold.mart_macro_regime\``),
+      run(`SELECT * FROM \`${P}.gold.mart_portfolio_actions\``),
+      run(`SELECT * FROM \`${P}.gold.mart_evidence_bands\` ORDER BY scope_order`),
       run(`SELECT max(inserted_at) AS refreshed_at FROM \`${P}.bronze._dlt_loads\``),
     ]);
 
@@ -27,6 +30,8 @@ export async function GET() {
       positions,
       macro,
       regime: regime[0] ?? null,
+      actions,
+      bands,
       refreshed_at: meta[0]?.refreshed_at ?? null,
     });
   } catch (e) {

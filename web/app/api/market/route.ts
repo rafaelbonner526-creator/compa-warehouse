@@ -47,11 +47,29 @@ export async function GET() {
       run(`SELECT * FROM \`${P}.gold.mart_valuation\``),
       run(`SELECT * FROM \`${P}.gold.mart_valuation_reference\` ORDER BY ord`),
       run(`SELECT * FROM \`${P}.gold.mart_credit_cycle\` WHERE entity = 'USA'`),
+      // Bucketed rather than one bar per year. 83 intervals spread over 6-41 years
+      // rendered as ~30 sparse bars that read as noise; five buckets centred on the
+      // model's own 16-20 claim answer the question at a glance.
       run(
-        `SELECT interval_years, count(*) AS n
-         FROM \`${P}.gold.mart_property_cycle_intervals\`
-         WHERE interval_years IS NOT NULL
-         GROUP BY interval_years ORDER BY interval_years`,
+        `SELECT bucket, sort_key, count(*) AS n FROM (
+           SELECT
+             CASE
+               WHEN interval_years < 12 THEN '6-11'
+               WHEN interval_years < 16 THEN '12-15'
+               WHEN interval_years <= 20 THEN '16-20'
+               WHEN interval_years <= 25 THEN '21-25'
+               ELSE '26+'
+             END AS bucket,
+             CASE
+               WHEN interval_years < 12 THEN 1
+               WHEN interval_years < 16 THEN 2
+               WHEN interval_years <= 20 THEN 3
+               WHEN interval_years <= 25 THEN 4
+               ELSE 5
+             END AS sort_key
+           FROM \`${P}.gold.mart_property_cycle_intervals\`
+           WHERE interval_years IS NOT NULL
+         ) t GROUP BY bucket, sort_key ORDER BY sort_key`,
       ),
       run(`SELECT max(inserted_at) AS refreshed_at FROM \`${P}.bronze._dlt_loads\``),
     ]);

@@ -34,6 +34,7 @@ type Data = {
   recent: Row[];
   runway: Row | null;
   recurring: Row | null;
+  budget: Row[];
   refreshed_at: string | null;
 };
 
@@ -81,9 +82,17 @@ export default function Home() {
   if (!d) return <main className="p-8 text-zinc-500">Loading…</main>;
 
   const s = d.sts;
-  const left = Number(s.safe_to_spend_month);
-  const budget = Number(s.living_target);
-  const spent = Number(s.spent_this_month);
+  // Headline is now FLEXIBLE budget left, not a 70%-of-W2 "living target". Fixed
+  // and committed costs are not decisions you make mid-month; flexible spend is
+  // the only part today's behaviour can still change.
+  const left = Number(s.flexible_left);
+  const budget = Number(s.flexible_target);
+  const spent = Number(s.flexible_spent_this_month);
+  const totalTarget = Number(s.total_target);
+  const totalSpent = Number(s.spent_this_month);
+  const targetSave = Number(s.target_monthly_savings);
+  const targetRate = Number(s.target_savings_rate_pct);
+  const actualRate = Number(s.actual_savings_rate_pct);
   const pctSpent = budget ? Math.min((spent / budget) * 100, 100) : 0;
 
   const now = new Date();
@@ -254,6 +263,69 @@ export default function Home() {
             </div>
           ))}
         </div>
+      </Card>
+
+      {/* budget vs actual */}
+      <div className="mt-6 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-lg font-semibold">Budget vs actual</h2>
+        <span className="text-xs text-zinc-500">
+          target {money(totalTarget)}/mo · saving {money(targetSave)}/mo ({targetRate}%) if hit
+          · actual today {actualRate}%
+        </span>
+      </div>
+      <p className="mt-1 text-sm text-zinc-500">
+        Compared against your trailing 3-month average, not this partial month. Targets live in
+        version control, so this table and the headline above can never disagree.
+      </p>
+      <Card className="mt-3">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs uppercase tracking-wide text-zinc-500">
+                <th className="pb-2 pr-3 font-medium">Category</th>
+                <th className="pb-2 pr-3 font-medium">Tier</th>
+                <th className="pb-2 pr-3 text-right font-medium">Target</th>
+                <th className="pb-2 pr-3 text-right font-medium">3mo avg</th>
+                <th className="pb-2 pr-3 text-right font-medium">Gap</th>
+                <th className="pb-2 text-right font-medium">This month</th>
+              </tr>
+            </thead>
+            <tbody className="text-zinc-300">
+              {d.budget.map((r) => {
+                const gap = Number(r.gap_vs_target);
+                const st = String(r.status);
+                const proj = r.projected_month == null ? null : Number(r.projected_month);
+                return (
+                  <tr key={String(r.category_group)} className="border-t border-zinc-800">
+                    <td className="py-2 pr-3 font-medium">{String(r.category_group)}</td>
+                    <td className="py-2 pr-3 text-xs text-zinc-500">{String(r.tier)}</td>
+                    <td className="py-2 pr-3 text-right tabular-nums text-zinc-400">
+                      {money(Number(r.monthly_target))}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular-nums">{money(Number(r.avg_3mo))}</td>
+                    <td
+                      className="py-2 pr-3 text-right tabular-nums font-medium"
+                      style={{ color: gap > 0 ? (st === "well_over" ? RED : "#fbbf24") : GREEN }}
+                    >
+                      {signed(gap)}
+                    </td>
+                    <td className="py-2 text-right tabular-nums text-zinc-400">
+                      {money(Number(r.spend_mtd))}
+                      {proj != null && (
+                        <span className="ml-1 text-xs text-zinc-600">→ {money(proj)}</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-3 text-xs leading-relaxed text-zinc-500">
+          The arrow is where this month lands if the rest of it matches the pace so far. Fixed costs
+          have no projection because rent is one lump on the 1st, and pacing it by elapsed days would
+          claim a $1,600 rent is becoming $2,480.
+        </p>
       </Card>
 
       {/* category spend */}

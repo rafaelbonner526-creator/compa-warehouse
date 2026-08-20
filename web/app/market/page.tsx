@@ -258,6 +258,8 @@ export default function Market() {
   const troughYear = troughDate ? Number(troughDate.slice(0, 4)) : null;
   const hp = d.housePrices.map((x) => ({ d: String(x.obs_date), v: Number(x.value) }));
   const troughPoint = hp.find((p) => p.d === troughDate);
+  const priorTroughDate = pc?.prior_trough_date ? String(pc.prior_trough_date) : null;
+  const priorPoint = priorTroughDate ? hp.find((p) => p.d === priorTroughDate) : undefined;
   const nowPoint = hp.length ? hp[hp.length - 1] : null;
   const yearsIn = pc ? Number(pc.years_since_trough) : 0;
   const pctComplete = pc ? Number(pc.cycle_pct_complete) : 0;
@@ -880,7 +882,18 @@ export default function Market() {
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
                 <div className="text-xs uppercase tracking-wide text-zinc-500">Current phase</div>
-                <div className="text-3xl font-semibold">{String(pc.phase)}</div>
+                <div className="text-3xl font-semibold">
+                  {String(pc.phase).startsWith("Past model horizon")
+                    ? "Beyond the model's 18 years"
+                    : String(pc.phase)}
+                </div>
+                {String(pc.phase).startsWith("Past model horizon") && (
+                  <div className="mt-1 max-w-md text-xs leading-relaxed text-amber-300/80">
+                    More than 18 years have passed since the last cycle low without a new one, so
+                    the model has run out of road. That is a statement about the model, not a
+                    prediction about prices.
+                  </div>
+                )}
               </div>
               <div className="text-right text-xs text-zinc-500">
                 <div>
@@ -975,29 +988,58 @@ export default function Market() {
               {d.cycleIntervals.length > 0 && (
                 <div className="mt-4">
                   <div className="mb-1 text-xs text-zinc-500">
-                    Distribution of every measured interval. Gold marks the 16-20 year window the
-                    model claims.
+                    All {Number(pc.n_intervals)} measured cycles, grouped by how long they lasted.
+                    Gold is the 16-20 year window the model claims.
                   </div>
-                  <ResponsiveContainer width="100%" height={110}>
-                    <BarChart data={d.cycleIntervals.map((x) => ({
-                      y: Number(x.interval_years),
-                      n: Number(x.n),
-                    }))}>
-                      <XAxis dataKey="y" tick={{ fill: "#71717a", fontSize: 10 }} interval={2} />
-                      <YAxis tick={{ fill: "#71717a", fontSize: 10 }} width={22} allowDecimals={false} />
+                  <ResponsiveContainer width="100%" height={150}>
+                    <BarChart
+                      data={d.cycleIntervals.map((x) => ({
+                        bucket: String(x.bucket),
+                        n: Number(x.n),
+                      }))}
+                      margin={{ left: 4, right: 8, top: 6, bottom: 22 }}
+                    >
+                      <XAxis
+                        dataKey="bucket"
+                        tick={{ fill: "#a1a1aa", fontSize: 11 }}
+                        label={{
+                          value: "cycle length (years)",
+                          position: "insideBottom",
+                          offset: -14,
+                          fill: "#71717a",
+                          fontSize: 11,
+                        }}
+                      />
+                      <YAxis
+                        tick={{ fill: "#71717a", fontSize: 11 }}
+                        width={30}
+                        allowDecimals={false}
+                        label={{
+                          value: "cycles",
+                          angle: -90,
+                          position: "insideLeft",
+                          fill: "#71717a",
+                          fontSize: 11,
+                        }}
+                      />
                       <Tooltip
                         contentStyle={{ background: "#18181b", border: "1px solid #3f3f46", borderRadius: 12 }}
-                        labelFormatter={(v) => `${v} year interval`}
-                        formatter={(v) => [`${v} cycles`, ""]}
+                        labelFormatter={(v) => `${v} year cycles`}
+                        formatter={(v) => [`${v} of ${Number(pc.n_intervals)}`, "count"]}
+                        cursor={{ fill: "#27272a55" }}
                       />
-                      <Bar dataKey="n">
-                        {d.cycleIntervals.map((x, i) => {
-                          const y = Number(x.interval_years);
-                          return <Cell key={i} fill={y >= 16 && y <= 20 ? AMBER : "#52525b"} />;
-                        })}
+                      <Bar dataKey="n" radius={[4, 4, 0, 0]}>
+                        {d.cycleIntervals.map((x, i) => (
+                          <Cell key={i} fill={String(x.bucket) === "16-20" ? AMBER : "#52525b"} />
+                        ))}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
+                  <div className="mt-1 text-xs text-zinc-500">
+                    The gold bar is the tallest, so the model is picking a real central
+                    tendency. It is also only {Number(pc.pct_within_16_20)}% of all cycles, and the
+                    two bars either side of it together hold far more. That is the whole finding.
+                  </div>
                 </div>
               )}
 
@@ -1014,8 +1056,12 @@ export default function Market() {
               <p className="mt-2 text-xs leading-relaxed text-zinc-400">
                 <strong className="text-zinc-200">The US is the worst case.</strong> Its{" "}
                 {Number(pc.usa_n_intervals)} measured intervals averaged {Number(pc.usa_mean)} years
-                and ran from {Number(pc.usa_min)} to {Number(pc.usa_max)}. Applied to the current
-                cycle, the measured quartiles put the next low anywhere between{" "}
+                and ran from {Number(pc.usa_min)} to {Number(pc.usa_max)}. Its own most recent
+                completed cycle, {String(pc.prior_trough_date).slice(0, 4)} to{" "}
+                {String(pc.trough_date).slice(0, 4)}, ran{" "}
+                <strong className="text-zinc-300">{Number(pc.last_us_interval_years)} years</strong>,
+                not 18. Applied to the current cycle, the measured quartiles put the next low
+                anywhere between{" "}
                 <strong className="text-zinc-300">{Number(pc.next_low_earliest)}</strong> and{" "}
                 <strong className="text-zinc-300">{Number(pc.next_low_latest)}</strong>, and the
                 earlier of those is already behind us.
@@ -1024,8 +1070,16 @@ export default function Market() {
 
             {/* price chart: pre-cycle greyed, current cycle highlighted */}
             <div className="mt-6">
-              <div className="mb-1 text-xs text-zinc-500">
-                US home prices. Grey is the previous cycle; gold is the one we are in.
+              <div className="mb-1 text-sm font-medium text-zinc-300">
+                US home prices since {String(pc.first_date).slice(0, 4)}
+              </div>
+              <div className="mb-2 text-xs leading-relaxed text-zinc-500">
+                Case-Shiller national index. Green dots are the two cycle lows the model located,{" "}
+                <strong className="text-zinc-400">{priorTroughDate?.slice(0, 7)}</strong> and{" "}
+                <strong className="text-zinc-400">{troughDate?.slice(0, 7)}</strong>. The shaded
+                section is the completed cycle between them, which ran{" "}
+                {Number(pc.last_us_interval_years)} years. Everything to the right of the second dot
+                is the cycle we are currently in.
               </div>
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart data={hp} margin={{ left: -12, right: 8, top: 8 }}>
@@ -1035,15 +1089,15 @@ export default function Market() {
                       <stop offset="100%" stopColor={AMBER} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  {troughDate && hp.length > 0 && (
+                  {priorTroughDate && troughDate && (
                     <ReferenceArea
-                      x1={hp[0].d}
+                      x1={priorTroughDate}
                       x2={troughDate}
                       fill="#52525b"
-                      fillOpacity={0.16}
+                      fillOpacity={0.18}
                       label={{
-                        value: "previous cycle",
-                        fill: "#71717a",
+                        value: `previous cycle · ${Number(pc.last_us_interval_years)}y`,
+                        fill: "#a1a1aa",
                         fontSize: 10,
                         position: "insideTop",
                       }}
@@ -1055,7 +1109,18 @@ export default function Market() {
                     minTickGap={55}
                     tickFormatter={(v) => String(v).slice(0, 4)}
                   />
-                  <YAxis tick={{ fill: "#71717a", fontSize: 11 }} width={40} domain={["auto", "auto"]} />
+                  <YAxis
+                    tick={{ fill: "#71717a", fontSize: 11 }}
+                    width={46}
+                    domain={["auto", "auto"]}
+                    label={{
+                      value: "index",
+                      angle: -90,
+                      position: "insideLeft",
+                      fill: "#71717a",
+                      fontSize: 11,
+                    }}
+                  />
                   <Tooltip
                     contentStyle={{ background: "#18181b", border: "1px solid #3f3f46", borderRadius: 12 }}
                     labelFormatter={(v) => String(v).slice(0, 7)}
@@ -1071,7 +1136,10 @@ export default function Market() {
                     />
                   )}
                   {troughPoint && (
-                    <ReferenceDot x={troughPoint.d} y={troughPoint.v} r={4} fill={GREEN} stroke="none" />
+                    <ReferenceDot x={troughPoint.d} y={troughPoint.v} r={5} fill={GREEN} stroke="none" />
+                  )}
+                  {priorPoint && (
+                    <ReferenceDot x={priorPoint.d} y={priorPoint.v} r={5} fill={GREEN} stroke="none" />
                   )}
                   {nowPoint && (
                     <ReferenceDot

@@ -33,7 +33,8 @@ FULL_HISTORY = 60000  # ~164 years, i.e. "give me everything you have"
 # name -> (FRED series id, days of history)
 SERIES = {
     "oil_wti": ("DCOILWTICO", CYCLE_DAYS),  # energy
-    "cpi": ("CPIAUCSL", CYCLE_DAYS),  # inflation (level -> YoY downstream)
+    "cpi": ("CPIAUCSL", FULL_HISTORY),  # inflation. FULL history because the property
+    # cycle deflates nominal house prices by it; 2 years of CPI cannot deflate 39 years of prices.
     "commodities": ("PPIACO", CYCLE_DAYS),  # metals / commodities (PPI all commodities)
     "fed_funds": ("DFF", CYCLE_DAYS),  # central-bank policy / cash yield
     "bond_10y": ("DGS10", CYCLE_DAYS),  # 10-year Treasury yield

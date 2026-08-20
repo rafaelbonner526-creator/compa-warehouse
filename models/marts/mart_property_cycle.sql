@@ -19,20 +19,65 @@
 -- question is where we are NOW. The two agree where they overlap: JST's last
 -- measured US real-price trough is 2012, the same year this model finds in
 -- nominal Case-Shiller.
+--
+-- TROUGH DETECTION, and why it changed twice:
+--   v1 took the global minimum of NOMINAL Case-Shiller over a 20-year window. That
+--      happened to land on 2012 only because the window started in 2006.
+--   v2 extended the series to its full history (1987+) for percentile work, and the
+--      global-minimum method immediately broke: nominal house prices essentially
+--      only rise, so the cheapest month in the whole series became January 1987.
+--      The dashboard then reported "year 39.3 of 18" and a cycle starting in 1987.
+--   v3 (this) matches the method mart_property_cycle_intervals already used:
+--      deflate by CPI and take the most recent LOCAL minimum with a full window on
+--      both sides. Two methods for one concept is how they drift apart.
+--
+-- Real, not nominal: over 39 years inflation dwarfs the cycle, and a nominal series
+-- in an inflationary era never makes a trough at all. Deflated US prices produce two
+-- local minima, 1997-02 and 2012-02, and the later one agrees with the independent
+-- JST annual dataset's US trough of 2012.
 WITH hp AS (
-    SELECT obs_date, value
+    SELECT obs_date, value AS nominal
     FROM {{ ref('stg_fred') }}
     WHERE series = 'house_prices' AND value IS NOT NULL
 ),
-bounds AS (SELECT min(obs_date) AS first_date, max(obs_date) AS last_date FROM hp),
+cpi AS (
+    SELECT obs_date, value AS cpi
+    FROM {{ ref('stg_fred') }}
+    WHERE series = 'cpi' AND value IS NOT NULL AND value > 0
+),
+real_hp AS (
+    SELECT h.obs_date, h.nominal, h.nominal / c.cpi AS rhp
+    FROM hp h JOIN cpi c ON h.obs_date = c.obs_date
+),
+bounds AS (SELECT min(obs_date) AS first_date, max(obs_date) AS last_date FROM real_hp),
+-- +/- 60 months. A trough must be the cheapest real price within five years either
+-- side, with a COMPLETE window on both sides (n = 121), so the ends of the series
+-- can never masquerade as a cycle low.
+windowed AS (
+    SELECT
+        obs_date, nominal, rhp,
+        min(rhp) OVER (ORDER BY obs_date ROWS BETWEEN 60 PRECEDING AND 60 FOLLOWING) AS win_min,
+        count(*) OVER (ORDER BY obs_date ROWS BETWEEN 60 PRECEDING AND 60 FOLLOWING) AS win_n
+    FROM real_hp
+),
+troughs AS (
+    SELECT obs_date, nominal, rhp
+    FROM windowed
+    WHERE rhp = win_min AND win_n = 121
+),
 trough AS (
-    SELECT obs_date AS trough_date, value AS trough_value
-    FROM hp
-    QUALIFY row_number() OVER (ORDER BY value ASC, obs_date ASC) = 1
+    SELECT obs_date AS trough_date, nominal AS trough_value
+    FROM troughs
+    QUALIFY row_number() OVER (ORDER BY obs_date DESC) = 1
+),
+prior_trough AS (
+    SELECT obs_date AS prior_trough_date
+    FROM troughs
+    QUALIFY row_number() OVER (ORDER BY obs_date DESC) = 2
 ),
 peak_since AS (
-    SELECT max(h.value) AS peak_value
-    FROM hp h CROSS JOIN trough t
+    SELECT max(h.nominal) AS peak_value
+    FROM real_hp h CROSS JOIN trough t
     WHERE h.obs_date >= t.trough_date
 ),
 -- measured distribution, all countries.
@@ -78,13 +123,21 @@ usa AS (
 pos AS (
     SELECT
         t.trough_date,
+        pt.prior_trough_date,
         b.last_date,
         b.first_date,
         round({{ dbt.datediff('t.trough_date', 'b.last_date', 'day') }} / 365.25, 1) AS years_since_trough,
         round(100 * (p.peak_value - t.trough_value) / nullif(t.trough_value, 0), 1)  AS pct_off_trough,
-        t.trough_date = b.first_date                                                 AS trough_at_edge
-    FROM trough t CROSS JOIN bounds b CROSS JOIN peak_since p
+        CASE
+            WHEN pt.prior_trough_date IS NULL THEN NULL
+            ELSE round({{ dbt.datediff('pt.prior_trough_date', 't.trough_date', 'day') }} / 365.25, 1)
+        END AS last_us_interval_years
+    FROM trough t
+    CROSS JOIN bounds b
+    CROSS JOIN peak_since p
+    LEFT JOIN prior_trough pt ON true
 )
+
 SELECT
     pos.*,
     dist.*,
