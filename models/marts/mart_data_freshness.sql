@@ -26,6 +26,7 @@ WITH loads AS (
             WHEN schema_name LIKE 'compa_macro%'       THEN 'macro'
             WHEN schema_name LIKE 'compa_longhistory%' THEN 'longhistory'
             WHEN schema_name LIKE 'compa_finance%'     THEN 'finance'
+            WHEN schema_name LIKE 'compa_stripe%'      THEN 'stripe'
             ELSE 'bronze'
         END AS pipeline_key,
         max(inserted_at) AS last_loaded
@@ -77,7 +78,12 @@ src AS (
            'Reference only. Not currently driving any panel.'
     FROM {{ ref('stg_lh_boe') }}
     UNION ALL
-    SELECT 'SIGNAL leads', 7, 'bronze',
+    SELECT 'Stripe (Ampwell revenue)', 7, 'stripe',
+           (SELECT max(created_date) FROM {{ ref('stg_stripe_charges') }}), 30,
+           'Revenue against the 2027-02-10 venture binary.'
+    FROM (SELECT 1) x
+    UNION ALL
+    SELECT 'SIGNAL leads', 8, 'bronze',
            max(txn_date), 30, 'Outreach funnel.'
     FROM (SELECT cast(max(found_date) as date) AS txn_date FROM {{ ref('stg_leads') }}) l
 )

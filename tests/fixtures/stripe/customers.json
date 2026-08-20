@@ -1,0 +1,1 @@
+[{"id": "cus_live_1", "created": 1767571200, "email": "fixture@example.test", "name": "Fixture Clinic", "delinquent": false, "livemode": true}, {"id": "cus_test_1", "created": 1780531200, "email": "testaccount@example.com", "name": null, "delinquent": false, "livemode": false}]

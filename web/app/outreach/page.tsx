@@ -18,6 +18,7 @@ type Data = {
   kpi: Row;
   funnel: Row[];
   status: Row[];
+  revenue: Row | null;
   refreshed_at: string | null;
 };
 
@@ -29,11 +30,12 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
   );
 }
 
-function Kpi({ label, value }: { label: string; value: string }) {
+function Kpi({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <Card>
       <div className="text-sm text-zinc-400">{label}</div>
       <div className="mt-1 text-3xl font-semibold tracking-tight">{value}</div>
+      {sub && <div className="mt-1 text-xs text-zinc-500">{sub}</div>}
     </Card>
   );
 }
@@ -74,6 +76,9 @@ export default function Outreach() {
       })
     : null;
 
+  const rev = d.revenue;
+  const testOnly = rev ? String(rev.status) === "test_data_only" : false;
+
   return (
     <main className="mx-auto max-w-5xl px-5 pb-10 pt-4">
       <div className="flex items-baseline justify-between">
@@ -82,7 +87,66 @@ export default function Outreach() {
       </div>
       <p className="mt-1 text-sm text-zinc-500">SIGNAL cold-outreach funnel.</p>
 
-      <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {/* venture binary: the only panel pointed at the stated priority */}
+      {rev && (
+        <div className="mt-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-lg font-semibold">Ampwell revenue</h2>
+            <span className="text-xs text-zinc-500">
+              binary: {Number(rev.clients_target_min)}-{Number(rev.clients_target_max)} paying
+              clients by {String(rev.deadline).slice(0, 10)}
+            </span>
+          </div>
+
+          {testOnly && (
+            <div className="mt-2 rounded-xl border border-amber-900/60 bg-amber-950/25 px-4 py-3 text-xs leading-relaxed text-amber-200/90">
+              <strong className="font-semibold text-amber-200">
+                Stripe is connected in TEST mode, so there is no real revenue here.
+              </strong>{" "}
+              The key currently in use is an <span className="font-mono">sk_test</span> key and the
+              account holds {Number(rev.test_charges)} test charge
+              {Number(rev.test_charges) === 1 ? "" : "s"} worth $
+              {Number(rev.test_amount).toLocaleString()}, which this panel deliberately refuses to
+              count. Swap in a live read-only key to see actual numbers. Zero below means &quot;no
+              live data connected&quot;, not &quot;no clients&quot;.
+            </div>
+          )}
+
+          <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Kpi
+              label="Months to deadline"
+              value={String(Number(rev.months_to_deadline))}
+              sub={`${Number(rev.days_to_deadline)} days`}
+            />
+            <Kpi
+              label="Paying clients"
+              value={`${Number(rev.paying_customers)} of ${Number(rev.clients_target_min)}`}
+              sub={
+                Number(rev.clients_still_needed) > 0
+                  ? `${Number(rev.clients_still_needed)} still needed`
+                  : "target met"
+              }
+            />
+            <Kpi
+              label="Collected (all time)"
+              value={`$${Number(rev.net_collected).toLocaleString()}`}
+              sub={`$${Number(rev.collected_90d).toLocaleString()} last 90d`}
+            />
+            <Kpi
+              label="Active subscriptions"
+              value={String(Number(rev.active_subscriptions))}
+              sub="recurring retainers"
+            />
+          </div>
+          <p className="mt-2 text-xs leading-relaxed text-zinc-500">
+            Miss the binary and the premium-warm motion is wrong, which triggers a real pivot review
+            rather than more volume. With no cash pressure, the date is the forcing function.
+          </p>
+        </div>
+      )}
+
+      <h2 className="mt-8 text-lg font-semibold">Outreach funnel</h2>
+      <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi label="Leads" value={String(k.leads)} />
         <Kpi label="Touches" value={String(k.touches)} />
         <Kpi label="Open rate" value={`${k.open_rate}%`} />

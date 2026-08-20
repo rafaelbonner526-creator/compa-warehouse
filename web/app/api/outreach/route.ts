@@ -7,7 +7,7 @@ export const revalidate = 0;
 export async function GET() {
   try {
     const run = makeRunner();
-    const [kpi, funnel, status, meta] = await Promise.all([
+    const [kpi, funnel, status, revenue, meta] = await Promise.all([
       run(
         `SELECT
            (SELECT count(*) FROM \`${P}.silver.stg_leads\`) AS leads,
@@ -23,6 +23,7 @@ export async function GET() {
         `SELECT status, count(*) AS leads FROM \`${P}.silver.scd_leads\`
          WHERE dbt_valid_to IS NULL GROUP BY status ORDER BY leads DESC LIMIT 10`,
       ),
+      run(`SELECT * FROM \`${P}.gold.mart_revenue\``),
       run(`SELECT max(inserted_at) AS refreshed_at FROM \`${P}.bronze._dlt_loads\``),
     ]);
 
@@ -30,6 +31,7 @@ export async function GET() {
       kpi: kpi[0],
       funnel,
       status,
+      revenue: revenue[0] ?? null,
       refreshed_at: meta[0]?.refreshed_at ?? null,
     });
   } catch (e) {

@@ -18,6 +18,11 @@ sources:
       - name: lh_shiller
       - name: lh_jst
       - name: lh_boe
+      # Stripe (Ampwell revenue)
+      - name: stripe_charges
+      - name: stripe_invoices
+      - name: stripe_subscriptions
+      - name: stripe_customers
       # dlt's own load log, used by mart_data_freshness to report when each
       # pipeline last ran (distinct from how recent the data itself is)
       - name: _dlt_loads
