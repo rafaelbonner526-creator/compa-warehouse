@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Nav from "@/components/Nav";
+import Freshness from "@/components/Freshness";
 
 export const metadata: Metadata = {
   title: "COMPA",
@@ -16,6 +17,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="bg-zinc-950 text-zinc-100 antialiased">
         <Nav />
+        <Freshness />
         {children}
       </body>
     </html>

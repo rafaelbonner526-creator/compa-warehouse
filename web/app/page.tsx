@@ -149,7 +149,7 @@ export default function Home() {
         <h1 className="text-2xl font-semibold">Budget</h1>
         {refreshed && <span className="text-xs text-zinc-500">Last refreshed {refreshed} ET</span>}
       </div>
-      <p className="mt-1 text-sm text-zinc-500">Living budget = 70% of W2 take-home. Not financial advice.</p>
+      <p className="mt-1 text-sm text-zinc-500">Targets from your written budget. Headline is FLEXIBLE spend, the only part this month's behaviour can still change.</p>
 
       {/* KPI row 1 */}
       <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
