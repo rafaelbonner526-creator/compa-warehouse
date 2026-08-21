@@ -1,13 +1,15 @@
-category_group,tier,monthly_target,note
-Housing,fixed,1444,Your share of $2444 from Nov. Sep overlap = 2081
-Bills & Utilities,fixed,150,Placeholder until the new apartment's split is known
-Financial,fixed,60,Student loan 56
-Business,committed,196,Anthropic Resend htmlcsstoimg
-Education,committed,218,BaseLang 179 Coursera 49
-Health & Wellness,committed,150,Includes LA Fitness 75
-Food & Dining,flexible,750,Restaurants 400 groceries 350. Biggest lever on the page
-Auto & Transport,flexible,275,Gas parking rideshare
-Travel & Lifestyle,flexible,250,Travel 150 entertainment 100
-Shopping,flexible,200,
-Gifts & Donations,flexible,75,
-Other,flexible,100,Buffer
+category_group,tier,monthly_target,effective_from,effective_to,note
+Housing,fixed,1600,2026-03-01,2026-08-31,Current lease at 1600/mo. Rent began 2026-03-02.
+Housing,fixed,2081,2026-09-01,2026-09-30,Overlap month: 1600 final old rent plus 481 net share of the prorated Sep 21-30 stub.
+Housing,fixed,1444,2026-10-01,2999-12-31,Net share of the 2444 new rent after same-day reimbursement.
+Bills & Utilities,fixed,150,2026-03-01,2999-12-31,Placeholder until the new apartment split is known.
+Financial,fixed,60,2026-03-01,2999-12-31,Student loan 56.
+Business,committed,196,2026-03-01,2999-12-31,Anthropic. Resend. htmlcsstoimg.
+Education,committed,218,2026-03-01,2999-12-31,BaseLang 179. Coursera 49.
+Health & Wellness,committed,150,2026-03-01,2999-12-31,Includes LA Fitness 75.
+Food & Dining,flexible,750,2026-03-01,2999-12-31,Restaurants 400. Groceries 350. Biggest lever on the page.
+Auto & Transport,flexible,275,2026-03-01,2999-12-31,Gas. Parking. Rideshare.
+Travel & Lifestyle,flexible,250,2026-03-01,2999-12-31,Travel 150. Entertainment 100.
+Shopping,flexible,200,2026-03-01,2999-12-31,Clothing and electronics.
+Gifts & Donations,flexible,75,2026-03-01,2999-12-31,Gifts and giving.
+Other,flexible,100,2026-03-01,2999-12-31,Buffer for uncategorised.

@@ -1,0 +1,5 @@
+review,cadence_days,last_completed,source,what_to_do
+Quarterly rebalance,91,2026-05-07,Investing thesis governance schedule,Check sector caps and geographic balance. Rebalance if drift exceeds 5pp. Deploy dry powder.
+Monthly budget review,30,2026-07-01,Investing thesis governance schedule,Track contributions and execution consistency. No allocation changes.
+Annual strategy review,365,2026-05-07,Investing thesis governance schedule,Stress-test against new academic evidence. Re-evaluate conviction positions and targets.
+Memory compaction,90,2026-05-19,COMPA cadence,Audit context/memory.md and archive entries older than 90 days.

@@ -26,6 +26,7 @@ export default function Nav() {
       {link("/investing", "Portfolio")}
       {link("/market", "Market")}
       {link("/outreach", "Outreach")}
+      {link("/review", "Review")}
     </nav>
   );
 }
