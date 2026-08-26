@@ -14,3 +14,4 @@ echo "=== refresh $(date) ==="
 "$UV" run ingestion/load_bronze_dlt.py
 "$UV" run dbt build --target prod --profiles-dir .
 echo "=== done $(date) ==="
+python3 /Users/rafaelbonner/COMPA/system/scripts/cron_heartbeat.py beat warehouse-refresh

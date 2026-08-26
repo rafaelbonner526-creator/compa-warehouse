@@ -27,6 +27,28 @@ def dump(name: str, records: list) -> None:
     print(f"  {name}: {len(records)} records -> {name}.json")
 
 
+async def with_retry(what: str, call, attempts: int = 4, delay: float = 2.0):
+    """Retry a Monarch GraphQL call. Monarch 502s and times out intermittently.
+
+    The holdings loop has carried an inline version of this since it was written.
+    The transactions pager did not, and on 2026-08-26 a single gql TimeoutError
+    there killed a run in which accounts, categories, recurring, networth and
+    holdings had ALL already succeeded. Exponential so a slow-but-alive backend
+    gets a real chance rather than four rapid retries inside its stall.
+    """
+    for attempt in range(attempts):
+        try:
+            return await call()
+        except Exception as ex:  # noqa: BLE001
+            if attempt == attempts - 1:
+                raise
+            wait = delay * (2**attempt)
+            print(
+                f"  {what}: {type(ex).__name__}, retry {attempt + 1}/{attempts - 1} in {wait:.0f}s"
+            )
+            await asyncio.sleep(wait)
+
+
 async def main() -> None:
     mm = secure_session.get_authenticated_client()
     if mm is None:
@@ -84,7 +106,8 @@ async def main() -> None:
                         "account_id": a.get("id"),
                         "ticker": ticker,
                         "name": sec.get("name") or pos.get("name"),
-                        "security_type": sec.get("type") or sec.get("typeDisplay")
+                        "security_type": sec.get("type")
+                        or sec.get("typeDisplay")
                         or pos.get("type"),
                         "market_value": n.get("totalValue"),
                         "quantity": n.get("quantity"),
@@ -102,8 +125,11 @@ async def main() -> None:
     txns: list = []
     offset, page = 0, 100
     while True:
-        r = await mm.get_transactions(
-            limit=page, offset=offset, start_date=start, end_date=today
+        r = await with_retry(
+            f"transactions offset={offset}",
+            lambda: mm.get_transactions(
+                limit=page, offset=offset, start_date=start, end_date=today
+            ),
         )
         block = r.get("allTransactions", r) if isinstance(r, dict) else {}
         results = block.get("results", []) if isinstance(block, dict) else []
