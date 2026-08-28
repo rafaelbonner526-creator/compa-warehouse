@@ -13,7 +13,9 @@
 --   5-7 standard positions while Active < $15K
 --   Standard cap 7%, conviction cap 12% while Active < $15K
 --   Defensive sleeve 25-35%, inflation hedge 0-5%, dry powder 0-15%, bonds 0%
---   HSA invests once cash reaches $2,000
+--   HSA: $2,000 is a REQUIRED MINIMUM CASH BALANCE, not a deploy trigger. Wex
+--     disables investing below it and it must STAY in cash; only contributions
+--     ABOVE $2,000 get invested. Corrected 2026-08-28.
 --   Emergency fund >= 3 months of expenses
 --
 -- Severity: 1 = act now, 2 = act at the next quarterly rebalance, 3 = watch.
@@ -47,10 +49,12 @@ cash AS (
 burn AS (SELECT avg_monthly_spend AS monthly_spend FROM {{ ref('mart_safe_to_spend') }}),
 checks AS (
     SELECT 1 AS severity, 'HSA' AS area,
-        'Invest the HSA' AS title,
-        'Cash has crossed the $2,000 threshold and the investment account is empty. Mirror the Roth at 55/45.' AS detail,
+        'HSA cash below the investing minimum' AS title,
+        'Wex requires $2,000 held in CASH to keep investing enabled. Below that, new '
+          || 'contributions stop being invested. This is a floor to maintain, never a '
+          || 'balance to deploy.' AS detail,
         h.hsa_cash AS current_value, 2000.0 AS target_value, '$' AS unit,
-        CASE WHEN h.hsa_cash >= 2000 AND h.hsa_invested = 0 THEN 'act' ELSE 'ok' END AS status
+        CASE WHEN h.hsa_cash < 2000 THEN 'act' ELSE 'ok' END AS status
     FROM hsa h
     UNION ALL
     SELECT 1, 'Cash', 'Rebuild the emergency buffer',
