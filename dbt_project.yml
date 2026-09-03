@@ -9,3 +9,13 @@ models:
     marts:
       +materialized: table
       +schema: gold
+
+seeds:
+  compa_warehouse:
+    baselines:
+      +column_types:
+        # Target-specific: float64 is BigQuery-only and CI builds on DuckDB, so a
+        # bare float64 loaded fine in prod and failed CI outright. Same class as
+        # the UNNEST-vs-UNION-ALL notes in the cycle models: this project has two
+        # engines and every raw type name has to survive both.
+        value: "{{ 'float64' if target.type == 'bigquery' else 'DOUBLE' }}"

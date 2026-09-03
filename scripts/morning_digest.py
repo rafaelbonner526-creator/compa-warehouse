@@ -386,6 +386,74 @@ def section_market(c):
     return out
 
 
+# ------------------------------------------------------------- where you stand
+# The only section measured against an OUTSIDE reference. Everything else in this
+# brief compares Rafa to targets he set himself, which can say whether he did what
+# he said and never whether what he said was any good.
+#
+# Comparability is spoken out loud, not implied. A Federal Reserve percentile and
+# a consulting-rate blog are not the same kind of fact, and rendering them
+# identically would launder the weaker one.
+def section_standing(c):
+    rows_ = rows(c, f"""
+        SELECT domain, metric_key, tier, baseline_value, current_value, standing,
+               gap_to_tier, change_90d, change_90d_pct, comparability, population
+        FROM `{PROJECT}.gold.mart_baseline_vs_actual`
+        WHERE current_value IS NOT NULL
+        ORDER BY domain, metric_key, baseline_value
+    """)
+    if not rows_:
+        return []
+
+    out = ["WHERE YOU STAND", ""]
+
+    # --- net worth: headline is the percentile, sub-point is the climb ---------
+    nw = [r for r in rows_ if r["metric_key"] == "net_worth"]
+    if nw:
+        cur = float(nw[0]["current_value"])
+        above = [r for r in nw if r["standing"] == "at or above"]
+        below = [r for r in nw if r["standing"] == "below"]
+        tier_word = {"p50": "the median", "p75": "the top quarter",
+                     "p90": "the top 10%", "p99": "the top 1%"}
+        if above:
+            best = max(above, key=lambda r: float(r["baseline_value"]))
+            head = (f"  Your net worth is {money(cur)}, "
+                    f"above {tier_word.get(best['tier'], best['tier'])} "
+                    f"for your age.")
+        else:
+            nearest = min(below, key=lambda r: float(r["baseline_value"]))
+            head = (f"  Your net worth is {money(cur)}, "
+                    f"{money(float(nearest['baseline_value']) - cur)} short of "
+                    f"{tier_word.get(nearest['tier'], nearest['tier'])} for your age.")
+        chg = nw[0].get("change_90d")
+        if chg is not None:
+            pct = nw[0].get("change_90d_pct")
+            direction = "up" if float(chg) >= 0 else "down"
+            head += (f" {direction.capitalize()} {money(abs(float(chg)))}"
+                     f"{f' ({float(pct):+.0f}%)' if pct is not None else ''} "
+                     f"over 90 days.")
+        out.append(head)
+        # At most two rungs ahead. The 1% line from here is noise, not a goal.
+        for r in sorted(below, key=lambda r: float(r["baseline_value"]))[:2]:
+            need = float(r["baseline_value"]) - cur
+            label = tier_word.get(r["tier"], r["tier"])
+            out.append(f"    {label[0].upper()}{label[1:]} needs "
+                       f"{money(need)} more.")
+        out.append("    Source: Federal Reserve survey data for your age band.")
+
+    # --- retainer: the number is real, the benchmark is not neutral -----------
+    ret = [r for r in rows_ if r["metric_key"] == "monthly_retainer"]
+    if ret:
+        cur = float(ret[0]["current_value"])
+        floor = min(float(r["baseline_value"]) for r in ret)
+        out.append("")
+        out.append(f"  Your one retainer is {money(cur)} a month against a "
+                   f"{money(floor)} floor for small-client consulting work.")
+        out.append("    That benchmark comes from firms who sell pricing advice "
+                   "to consultants, so read it as the optimistic end, not a target.")
+    return out
+
+
 # ---------------------------------------------------------------- outreach
 # Internal angle labels mean nothing to a reader. Say what the angle argues.
 ANGLE_PLAIN = {
@@ -429,6 +497,7 @@ SECTIONS = {
     "money": section_money,
     "portfolio": section_portfolio,
     "market": section_market,
+    "standing": section_standing,
     "outreach": section_outreach,
 }
 
