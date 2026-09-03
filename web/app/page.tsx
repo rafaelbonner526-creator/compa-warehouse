@@ -1,483 +1,231 @@
 "use client";
 
-import { useEffect, useState } from "react";
+/* Money. Rebuilt 2026-09-03 as the reference implementation for the new design
+   system: validated colour tokens, shared primitives, a real font, and an
+   interaction layer on every chart.
+   ------------------------------------------------------------------------
+   FORM FOLLOWS THE DATA'S JOB, per the dataviz procedure:
+     one headline value, no comparison   -> stat tile, not a chart
+     change over time                    -> area/line with crosshair + tooltip
+     magnitude across a few categories   -> horizontal bars with direct labels
+     a value against a bound             -> meter
+   Colour is assigned last and only from tokens; no hex literals live here.  */
+
+import { useEffect, useMemo, useState } from "react";
 import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
+  Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer,
+  Tooltip, XAxis, YAxis,
 } from "recharts";
+import {
+  Card, Empty, Grid, Meter, Page, Row, Segmented, Stat, Table, Td, Tip, Tr,
+  compact, num, pct, seriesColor, usd,
+} from "@/components/ui";
 
-const GREEN = "#34d399";
-const RED = "#f87171";
-const ACCENT = "#818cf8";
-
-const money = (x: number | string) =>
-  `$${Math.round(Number(x)).toLocaleString("en-US")}`;
-const signed = (x: number) => `${x >= 0 ? "+" : "−"}${money(Math.abs(x))}`;
-
-type Row = Record<string, string | number | null>;
 type Data = {
-  sts: Row;
-  networth: Row[];
-  breakdown: Row[];
-  cashflow: Row[];
-  categories: Row[];
-  categoryTrend: Row[];
-  merchants: Row[];
-  bills: Row[];
-  recent: Row[];
-  runway: Row | null;
-  recurring: Row | null;
-  budget: Row[];
-  refreshed_at: string | null;
-  componentSpend: Row[];
+  sts: Row; networth: Row[]; breakdown: Row[]; cashflow: Row[];
+  categories: Row[]; merchants: Row[]; bills: Row[]; runway: Row | null;
+  budget: Row[]; componentSpend: Row[]; refreshed_at: string | null;
 };
 
-function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={`rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 ${className}`}>
-      {children}
-    </div>
-  );
-}
+type Range = "30" | "90" | "all";
 
-function Kpi({ label, value, accent, sub }: { label: string; value: string; accent?: string; sub?: string }) {
-  return (
-    <Card>
-      <div className="text-sm text-zinc-400">{label}</div>
-      <div className="mt-1 text-3xl font-semibold tracking-tight" style={accent ? { color: accent } : undefined}>
-        {value}
-      </div>
-      {sub && <div className="mt-1 text-xs text-zinc-500">{sub}</div>}
-    </Card>
-  );
-}
-
-const tip = {
-  contentStyle: { background: "#18181b", border: "1px solid #3f3f46", borderRadius: 12, color: "#fafafa" },
-  labelStyle: { color: "#a1a1aa" },
-};
-
-const Dot = ({ c }: { c: string }) => (
-  <span className="inline-block h-2 w-2 rounded-full" style={{ background: c }} />
-);
-
-
-// What the tooling costs, from real card charges rather than vendor dashboards.
-// The brief gets three lines; the full per-component table lives here.
-//
-// CHARGED and CAUSED are separate columns for Claude on purpose. The card total
-// covers Claude Code and personal use; only the Langfuse figure is PLM.
-// Collapsing them overstates the cost of running the product roughly thirtyfold
-// and would quietly corrupt any pricing built on it.
-function ComponentSpend({ rows }: { rows: Row[] }) {
-  if (!rows?.length) return null;
-  const num = (v: unknown) => (v == null ? null : Number(v));
-  const total90 = rows.reduce((a, r) => a + Number(r.spend_90d ?? 0), 0);
-  return (
-    <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
-      <div className="flex items-baseline justify-between">
-        <h2 className="text-sm font-semibold text-zinc-300">What the tooling costs</h2>
-        <span className="text-lg font-semibold">
-          ${Math.round(total90).toLocaleString("en-US")}
-          <span className="ml-1 text-xs font-normal text-zinc-500">last 90d</span>
-        </span>
-      </div>
-      <div className="mt-3 overflow-x-auto">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="text-zinc-500">
-              <th className="py-1 text-left font-normal">Component</th>
-              <th className="py-1 text-left font-normal">Serves</th>
-              <th className="py-1 text-right font-normal">90 days</th>
-              <th className="py-1 text-right font-normal">All time</th>
-              <th className="py-1 text-right font-normal">Caused by PLM</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => {
-              const att = num(r.plm_attributed_90d);
-              const none = Boolean(r.no_charges_matched);
-              return (
-                <tr key={i} className="border-t border-zinc-800/60">
-                  <td className="py-1 text-zinc-300">
-                    {String(r.component)}
-                    {none && (
-                      <span className="ml-2 text-[10px] text-amber-400">no charge matched</span>
-                    )}
-                  </td>
-                  <td className="py-1 text-zinc-500">{String(r.serves)}</td>
-                  <td className="py-1 text-right text-zinc-300">
-                    ${Number(r.spend_90d ?? 0).toFixed(2)}
-                  </td>
-                  <td className="py-1 text-right text-zinc-500">
-                    ${Number(r.spend_usd ?? 0).toFixed(2)}
-                  </td>
-                  <td className="py-1 text-right" style={{ color: att != null ? "#34d399" : undefined }}>
-                    {att != null ? `$${att.toFixed(2)}` : "-"}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      <p className="mt-2 text-[11px] leading-snug text-zinc-500">
-        Charges come from your bank records, not vendor dashboards. &quot;Caused by
-        PLM&quot; is measured separately and exists only for Claude, whose card total
-        also covers your own usage.
-      </p>
-    </div>
-  );
-}
-
-export default function Home() {
+export default function Money() {
   const [d, setD] = useState<Data | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [range, setRange] = useState<Range>("90");
 
   useEffect(() => {
     fetch("/api/budget")
-      .then((r) => r.json())
-      .then((j) => (j.error ? setErr(j.error) : setD(j)))
-      .catch((e) => setErr(String(e)));
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((j) => (j.error ? Promise.reject(new Error(j.error)) : setD(j)))
+      .catch((e) => setErr(String(e.message ?? e)));
   }, []);
 
-  if (err) return <main className="p-8 text-red-400">Error: {err}</main>;
-  if (!d) return <main className="p-8 text-zinc-500">Loading…</main>;
+  const nw = useMemo(() => {
+    if (!d) return [];
+    const all = d.networth.map((r) => ({
+      date: String(r.snapshot_date),
+      label: String(r.snapshot_date).slice(5),
+      v: num(r.net_worth),
+    }));
+    if (range === "all") return all;
+    return all.slice(-Number(range));
+  }, [d, range]);
+
+  if (err) return <Page title="Money"><Card><Empty>Could not load: {err}</Empty></Card></Page>;
+  if (!d) return <Page title="Money"><Card><Empty>Loading…</Empty></Card></Page>;
 
   const s = d.sts;
-  // Headline is now FLEXIBLE budget left, not a 70%-of-W2 "living target". Fixed
-  // and committed costs are not decisions you make mid-month; flexible spend is
-  // the only part today's behaviour can still change.
-  const left = Number(s.flexible_left);
-  const budget = Number(s.flexible_target);
-  const spent = Number(s.flexible_spent_this_month);
-  const totalTarget = Number(s.total_target);
-  const totalSpent = Number(s.spent_this_month);
-  const targetSave = Number(s.target_monthly_savings);
-  const targetRate = Number(s.target_savings_rate_pct);
-  const actualRate = Number(s.actual_savings_rate_pct);
-  const pctSpent = budget ? Math.min((spent / budget) * 100, 100) : 0;
+  const left = num(s.flexible_left);
+  const budget = num(s.flexible_target);
+  const spent = num(s.flexible_spent_this_month);
+  const actualRate = num(s.actual_savings_rate_pct);
+  const targetRate = num(s.target_savings_rate_pct);
+
+  const nwNow = nw.length ? nw[nw.length - 1].v : 0;
+  const nwThen = nw.length ? nw[0].v : 0;
+  const nwDelta = nwNow - nwThen;
 
   const now = new Date();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const dayOfMonth = now.getDate();
-  const daysLeft = daysInMonth - dayOfMonth + 1;
-  const dailyAllowance = Math.max(left, 0) / daysLeft;
-  const projected = dayOfMonth > 0 ? (spent / dayOfMonth) * daysInMonth : spent;
-  const projOver = projected - budget;
-
-  const nw = d.networth.map((r) => ({ date: String(r.snapshot_date).slice(5), v: Number(r.net_worth) }));
-  const nwNow = nw.length ? nw[nw.length - 1].v : 0;
-  const nwPrior = nw.length > 30 ? nw[nw.length - 31].v : nw.length ? nw[0].v : 0;
-  const nwChange = nwNow - nwPrior;
-  const breakdown = d.breakdown.map((r) => ({ bucket: String(r.bucket), balance: Number(r.balance) }));
+  const daysLeft = daysInMonth - now.getDate() + 1;
+  const perDay = Math.max(left, 0) / Math.max(daysLeft, 1);
 
   const cf = [...d.cashflow].reverse().map((r) => ({
-    month: String(r.month).slice(5, 7),
-    income: Number(r.income),
-    spend: Number(r.spend),
-    net: Number(r.net),
+    month: String(r.month).slice(0, 7),
+    income: num(r.income), spend: num(r.spend), net: num(r.net),
   }));
-  const curMonth = d.cashflow[0] ?? {};
-  const curIncome = Number(curMonth.income ?? 0);
-  const curSpend = Number(curMonth.spend ?? 0);
 
-  // trailing 3 complete months avg savings rate
-  const complete = d.cashflow.slice(1, 4);
-  const savingsRate = complete.length
-    ? Math.round(complete.reduce((a, r) => a + Number(r.savings_rate_pct ?? 0), 0) / complete.length)
-    : 0;
+  const cats = d.categories
+    .map((r) => ({ name: String(r.category_group), spend: num(r.spend) }))
+    .sort((a, b) => b.spend - a.spend);
+  const catMax = cats.length ? cats[0].spend : 0;
 
-  const cats = d.categories.map((r) => ({ name: String(r.category_group), spend: Number(r.spend) }));
-  const catTotal = cats.reduce((a, c) => a + c.spend, 0);
-
-  const runwayMonths = d.runway ? Number(d.runway.runway_months) : 0;
-  const liquid = d.runway ? Number(d.runway.liquid_savings) : 0;
-  const recurringMo = d.recurring ? Number(d.recurring.monthly_recurring) : 0;
-  const recurringN = d.recurring ? Number(d.recurring.bills) : 0;
+  const spendRows = d.componentSpend ?? [];
+  const spend90 = spendRows.reduce((a, r) => a + num(r.spend_90d), 0);
 
   const refreshed = d.refreshed_at
     ? new Date(d.refreshed_at).toLocaleString("en-US", {
-        timeZone: "America/New_York",
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
+        month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
       })
     : null;
 
   return (
-    <main className="mx-auto max-w-5xl px-5 pb-10 pt-4">
-      <ComponentSpend rows={d.componentSpend} />
-      <div className="flex items-baseline justify-between">
-        <h1 className="text-2xl font-semibold">Budget</h1>
-        {refreshed && <span className="text-xs text-zinc-500">Last refreshed {refreshed} ET</span>}
-      </div>
-      <p className="mt-1 text-sm text-zinc-500">Targets from your written budget. Headline is FLEXIBLE spend, the only part this month's behaviour can still change.</p>
-
-      {/* KPI row 1 */}
-      <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label="Left to spend" value={money(left)} accent={left >= 0 ? GREEN : RED} sub="this month" />
-        <Kpi label="Daily allowance" value={money(dailyAllowance)} sub={`${daysLeft} days left`} />
-        <Kpi label="Spent this month" value={money(spent)} sub={`of ${money(budget)}`} />
-        <Kpi label="Net worth" value={money(nwNow)} accent={GREEN} sub={`${signed(nwChange)} · 30d`} />
-      </div>
-
-      {/* KPI row 2 */}
-      <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi
-          label="Savings rate"
-          value={`${savingsRate}%`}
-          accent={savingsRate >= 0 ? GREEN : RED}
-          sub="avg, last 3 months"
+    <Page
+      title="Money"
+      subtitle="Spending, net worth and what the tooling costs. Figures come from your bank records, not from anyone's dashboard."
+      actions={refreshed ? <span className="text-xs" style={{ color: "var(--text-muted)" }}>Updated {refreshed}</span> : null}
+    >
+      {/* Headlines first: four values, no comparison, so tiles not charts. */}
+      <Grid cols={4}>
+        <Stat
+          label="Left to spend this month" value={usd(left)}
+          status={left <= 0 ? "critical" : left < budget * 0.2 ? "warning" : "good"}
+          hint={`${usd(perDay)}/day for ${daysLeft} more day${daysLeft === 1 ? "" : "s"}`}
         />
-        <Kpi
-          label="Runway"
-          value={`${runwayMonths} mo`}
-          accent={runwayMonths < 3 ? RED : GREEN}
-          sub={`${money(liquid)} liquid`}
+        <Stat
+          label="Net worth" value={usd(nwNow)}
+          delta={nwDelta} deltaLabel={`${usd(Math.abs(nwDelta))} over ${range === "all" ? "all time" : `${range} days`}`}
         />
-        <Kpi label="Recurring" value={`${money(recurringMo)}/mo`} sub={`${recurringN} bills`} />
-        <Kpi label="Income this month" value={money(curIncome)} sub="W2 + freelance" />
+        <Stat
+          label="Savings rate" value={pct(actualRate)}
+          status={actualRate >= targetRate ? "good" : "warning"}
+          hint={`target ${pct(targetRate)}`}
+        />
+        <Stat
+          label="Tooling, last 90 days" value={usd(spend90)}
+          hint={`${spendRows.filter((r) => num(r.spend_90d) > 0).length} services with a charge`}
+        />
+      </Grid>
+
+      {/* Filters in ONE row above the charts they control. */}
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>Over time</h2>
+        <Segmented<Range>
+          ariaLabel="Time range" value={range} onChange={setRange}
+          options={[{ value: "30", label: "30d" }, { value: "90", label: "90d" }, { value: "all", label: "All" }]}
+        />
       </div>
 
-      {/* budget progress + forecast */}
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">
-        <Card>
-          <div className="flex justify-between text-sm">
-            <span className="text-zinc-400">Spent this month</span>
-            <span className="text-zinc-300">{money(spent)} of {money(budget)}</span>
-          </div>
-          <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-zinc-800">
-            <div className="h-full rounded-full" style={{ width: `${pctSpent}%`, background: pctSpent >= 100 ? RED : GREEN }} />
+      <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-3">
+        <Card title="Net worth" hint="One series, so the title names it and no legend is needed." className="lg:col-span-2">
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={nw} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="nwFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--series-1)" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="var(--series-1)" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} />
+                <XAxis dataKey="label" tickLine={false} axisLine={false} minTickGap={28} />
+                <YAxis tickFormatter={(v) => compact(Number(v))} tickLine={false} axisLine={false} width={44} />
+                {/* Crosshair + tooltip: an HTML chart is interactive by default. */}
+                <Tooltip
+                  cursor={{ stroke: "var(--text-muted)", strokeDasharray: "3 3" }}
+                  content={<Tip format={(v) => usd(v)} />}
+                />
+                <Area
+                  type="monotone" dataKey="v" name="Net worth"
+                  stroke="var(--series-1)" strokeWidth={2} fill="url(#nwFill)"
+                  dot={false} activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--surface-1)" }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </Card>
-        <Card>
-          <div className="flex justify-between text-sm">
-            <span className="text-zinc-400">Projected month-end spend</span>
-            <span className="font-medium" style={{ color: projOver > 0 ? RED : GREEN }}>{money(projected)}</span>
-          </div>
-          <div className="mt-1 text-xs text-zinc-500">
-            {projOver > 0
-              ? `On pace to go ${money(projOver)} over your ${money(budget)} budget`
-              : `On pace to finish ${money(-projOver)} under your ${money(budget)} budget`}
-          </div>
-        </Card>
-      </div>
 
-      {/* net worth + cash flow */}
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">
-        <Card>
-          <div className="mb-3 flex items-baseline justify-between">
-            <span className="text-sm font-medium text-zinc-300">Net worth</span>
-            <span>
-              <span className="text-lg font-semibold">{money(nwNow)}</span>
-              <span className="ml-2 text-xs" style={{ color: nwChange >= 0 ? GREEN : RED }}>{signed(nwChange)} · 30d</span>
+        <Card title="Income against spending" hint="Two series, so both are in the legend and the tooltip.">
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={cf} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barGap={2}>
+                <CartesianGrid vertical={false} />
+                <XAxis dataKey="month" tickLine={false} axisLine={false} tickFormatter={(v) => String(v).slice(5)} />
+                <YAxis tickFormatter={(v) => compact(Number(v))} tickLine={false} axisLine={false} width={44} />
+                <Tooltip cursor={{ fill: "var(--surface-2)" }} content={<Tip format={(v) => usd(v)} />} />
+                <Bar dataKey="income" name="In" fill={seriesColor(2)} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="spend" name="Out" fill={seriesColor(1)} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-2 flex gap-4 text-[11px]" style={{ color: "var(--text-muted)" }}>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-2 w-2 rounded-full" style={{ background: seriesColor(2) }} />In
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-2 w-2 rounded-full" style={{ background: seriesColor(1) }} />Out
             </span>
           </div>
-          <ResponsiveContainer width="100%" height={190}>
-            <AreaChart data={nw} margin={{ left: -12, right: 8, top: 4 }}>
-              <defs>
-                <linearGradient id="nw" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={GREEN} stopOpacity={0.35} />
-                  <stop offset="100%" stopColor={GREEN} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="date" tick={{ fill: "#71717a", fontSize: 11 }} minTickGap={40} />
-              <YAxis tick={{ fill: "#71717a", fontSize: 11 }} tickFormatter={(v) => `$${Math.round(Number(v) / 1000)}k`} width={44} />
-              <Tooltip {...tip} formatter={(v) => money(Number(v))} />
-              <Area type="monotone" dataKey="v" stroke={GREEN} strokeWidth={2} fill="url(#nw)" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </Card>
-
-        <Card>
-          <div className="mb-3 flex items-baseline justify-between">
-            <span className="text-sm font-medium text-zinc-300">Income vs spend (by month)</span>
-            <span className="flex items-center gap-3 text-xs text-zinc-400">
-              <span className="flex items-center gap-1"><Dot c={GREEN} /> income</span>
-              <span className="flex items-center gap-1"><Dot c={RED} /> spend</span>
-            </span>
-          </div>
-          <ResponsiveContainer width="100%" height={190}>
-            <BarChart data={cf} margin={{ left: -12, right: 8, top: 4 }}>
-              <XAxis dataKey="month" tick={{ fill: "#71717a", fontSize: 11 }} />
-              <YAxis tick={{ fill: "#71717a", fontSize: 11 }} tickFormatter={(v) => `$${Math.round(Number(v) / 1000)}k`} width={44} />
-              <Tooltip {...tip} cursor={{ fill: "#27272a55" }} formatter={(v) => money(Number(v))} />
-              <Bar dataKey="income" fill={GREEN} radius={[3, 3, 0, 0]} />
-              <Bar dataKey="spend" fill={RED} radius={[3, 3, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
         </Card>
       </div>
 
-      {/* net worth breakdown */}
-      <Card className="mt-3">
-        <div className="mb-3 text-sm font-medium text-zinc-300">Net worth breakdown</div>
-        <div className="grid grid-cols-3 gap-3">
-          {breakdown.map((b) => (
-            <div key={b.bucket}>
-              <div className="text-xs text-zinc-500">{b.bucket}</div>
-              <div
-                className="text-xl font-semibold"
-                style={{ color: b.balance >= 0 ? GREEN : RED }}
-              >
-                {money(b.balance)}
-              </div>
+      <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <Card title="Where it goes" hint="Magnitude across categories, ranked, with values labelled directly.">
+          {cats.length === 0 ? <Empty>No category data.</Empty> : (
+            <div className="space-y-2.5">
+              {cats.slice(0, 8).map((c, i) => (
+                <div key={c.name}>
+                  <div className="mb-1 flex items-baseline justify-between text-xs">
+                    <span style={{ color: "var(--text-secondary)" }}>{c.name}</span>
+                    <span className="tnum" style={{ color: "var(--text-primary)" }}>{usd(c.spend)}</span>
+                  </div>
+                  <Meter value={c.spend} max={catMax} color={seriesColor(i)} />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </Card>
+          )}
+        </Card>
 
-      {/* budget vs actual */}
-      <div className="mt-6 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-lg font-semibold">Budget vs actual</h2>
-        <span className="text-xs text-zinc-500">
-          target {money(totalTarget)}/mo · saving {money(targetSave)}/mo ({targetRate}%) if hit
-          · actual today {actualRate}%
-        </span>
-      </div>
-      <p className="mt-1 text-sm text-zinc-500">
-        Compared against your trailing 3-month average, not this partial month. Targets live in
-        version control, so this table and the headline above can never disagree.
-      </p>
-      <Card className="mt-3">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs uppercase tracking-wide text-zinc-500">
-                <th className="pb-2 pr-3 font-medium">Category</th>
-                <th className="pb-2 pr-3 font-medium">Tier</th>
-                <th className="pb-2 pr-3 text-right font-medium">Target</th>
-                <th className="pb-2 pr-3 text-right font-medium">3mo avg</th>
-                <th className="pb-2 pr-3 text-right font-medium">Gap</th>
-                <th className="pb-2 text-right font-medium">This month</th>
-              </tr>
-            </thead>
-            <tbody className="text-zinc-300">
-              {d.budget.map((r) => {
-                const gap = Number(r.gap_vs_target);
-                const st = String(r.status);
-                const proj = r.projected_month == null ? null : Number(r.projected_month);
+        <Card
+          title="What the tooling costs"
+          hint="Charged is what left the account. Caused by PLM is measured separately and exists only for Claude, whose bill also covers your own use."
+          right={<span className="tnum text-lg font-semibold">{usd(spend90)}<span className="ml-1 text-xs font-normal" style={{ color: "var(--text-muted)" }}>90d</span></span>}
+        >
+          {spendRows.length === 0 ? <Empty>No spend data.</Empty> : (
+            <Table head={["Component", "Serves", "Per month", "All time", "By PLM"]}>
+              {spendRows.map((r, i) => {
+                const att = r.plm_attributed_90d == null ? null : num(r.plm_attributed_90d);
+                const none = Boolean(r.no_charges_matched);
                 return (
-                  <tr key={String(r.category_group)} className="border-t border-zinc-800">
-                    <td className="py-2 pr-3 font-medium">{String(r.category_group)}</td>
-                    <td className="py-2 pr-3 text-xs text-zinc-500">{String(r.tier)}</td>
-                    <td className="py-2 pr-3 text-right tabular-nums text-zinc-400">
-                      {money(Number(r.monthly_target))}
-                    </td>
-                    <td className="py-2 pr-3 text-right tabular-nums">{money(Number(r.avg_3mo))}</td>
-                    <td
-                      className="py-2 pr-3 text-right tabular-nums font-medium"
-                      style={{ color: gap > 0 ? (st === "well_over" ? RED : "#fbbf24") : GREEN }}
-                    >
-                      {signed(gap)}
-                    </td>
-                    <td className="py-2 text-right tabular-nums text-zinc-400">
-                      {money(Number(r.spend_mtd))}
-                      {proj != null && (
-                        <span className="ml-1 text-xs text-zinc-600">→ {money(proj)}</span>
-                      )}
-                    </td>
-                  </tr>
+                  <Tr key={i}>
+                    <Td align="left" mono={false} color="var(--text-primary)">
+                      {String(r.component)}
+                      {none && <span className="ml-2 text-[10px]" style={{ color: "var(--status-warning)" }}>no charge</span>}
+                    </Td>
+                    <Td align="left" mono={false}>{String(r.serves)}</Td>
+                    <Td>{usd(num(r.spend_per_month), true)}</Td>
+                    <Td color="var(--text-muted)">{usd(num(r.spend_usd))}</Td>
+                    <Td color={att != null ? "var(--status-good)" : undefined}>
+                      {att != null ? usd(att, true) : "—"}
+                    </Td>
+                  </Tr>
                 );
               })}
-            </tbody>
-          </table>
-        </div>
-        <p className="mt-3 text-xs leading-relaxed text-zinc-500">
-          The arrow is where this month lands if the rest of it matches the pace so far. Fixed costs
-          have no projection because rent is one lump on the 1st, and pacing it by elapsed days would
-          claim a $1,600 rent is becoming $2,480.
-        </p>
-      </Card>
-
-      {/* category spend */}
-      <Card className="mt-3">
-        <div className="mb-3 flex items-baseline justify-between">
-          <span className="text-sm font-medium text-zinc-300">Spending by category (this month)</span>
-          <span className="text-lg font-semibold">{money(catTotal)}</span>
-        </div>
-        <ResponsiveContainer width="100%" height={Math.max(cats.length * 34, 120)}>
-          <BarChart data={cats} layout="vertical" margin={{ left: 40, right: 48 }}>
-            <XAxis type="number" hide />
-            <YAxis type="category" dataKey="name" tick={{ fill: "#a1a1aa", fontSize: 12 }} width={120} />
-            <Tooltip {...tip} cursor={{ fill: "#27272a55" }} formatter={(v) => money(Number(v))} />
-            <Bar dataKey="spend" fill={ACCENT} radius={[0, 4, 4, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </Card>
-
-      {/* category trend + top merchants */}
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">
-        <Card>
-          <div className="mb-3 text-sm font-medium text-zinc-300">This month vs 3-month average</div>
-          <ul className="space-y-2 text-sm">
-            {d.categoryTrend.map((r, i) => {
-              const delta = Number(r.delta);
-              return (
-                <li key={i} className="flex items-center justify-between">
-                  <span className="text-zinc-300">{String(r.category_group)}</span>
-                  <span className="flex items-center gap-3">
-                    <span className="text-zinc-200">{money(Number(r.this_month))}</span>
-                    <span className="w-20 text-right text-xs" style={{ color: delta > 0 ? RED : GREEN }}>
-                      {delta > 0 ? "▲" : "▼"} {money(Math.abs(delta))}
-                    </span>
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </Card>
-        <Card>
-          <div className="mb-3 text-sm font-medium text-zinc-300">Top merchants (30d)</div>
-          <ul className="space-y-2 text-sm">
-            {d.merchants.map((m, i) => (
-              <li key={i} className="flex justify-between">
-                <span className="truncate text-zinc-300">{String(m.merchant)}</span>
-                <span className="text-zinc-400">{money(Number(m.spend))}</span>
-              </li>
-            ))}
-          </ul>
+            </Table>
+          )}
         </Card>
       </div>
-
-      {/* bills + recent */}
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">
-        <Card>
-          <div className="mb-3 text-sm font-medium text-zinc-300">Upcoming bills</div>
-          <ul className="space-y-2 text-sm">
-            {d.bills.map((b, i) => (
-              <li key={i} className="flex justify-between">
-                <span className="text-zinc-300">{String(b.merchant)}</span>
-                <span className="text-zinc-400">{String(b.due_date).slice(5)} · {money(Number(b.amount))}</span>
-              </li>
-            ))}
-            {!d.bills.length && <li className="text-zinc-500">None upcoming</li>}
-          </ul>
-        </Card>
-        <Card>
-          <div className="mb-3 text-sm font-medium text-zinc-300">Recent transactions</div>
-          <ul className="space-y-2 text-sm">
-            {d.recent.map((t, i) => {
-              const amt = Number(t.amount);
-              return (
-                <li key={i} className="flex justify-between gap-3">
-                  <span className="truncate text-zinc-300">{String(t.merchant)}</span>
-                  <span style={{ color: amt > 0 ? GREEN : "#a1a1aa" }}>{signed(amt)}</span>
-                </li>
-              );
-            })}
-          </ul>
-        </Card>
-      </div>
-    </main>
+    </Page>
   );
 }

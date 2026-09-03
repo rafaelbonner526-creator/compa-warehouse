@@ -1,25 +1,98 @@
 @import "tailwindcss";
 
-/* This dashboard is dark by design: every surface uses zinc-800/900 borders with
-   light text. These vars are pinned dark rather than following the OS, because the
-   body rule below is UNLAYERED and therefore beats the layered `bg-zinc-950`
-   utility set in layout.tsx. Following prefers-color-scheme here rendered a white
-   page behind semi-transparent dark cards for anyone on a light-mode OS, which made
-   the smaller zinc-500 body copy nearly unreadable. */
+/* COMPA design tokens.
+   ------------------------------------------------------------------------
+   DARK BY DESIGN, and pinned rather than following the OS. The body rule below
+   is UNLAYERED and therefore beats Tailwind's layered utilities, so following
+   prefers-color-scheme here rendered a white page behind semi-transparent dark
+   cards for anyone on a light-mode OS and made the smaller body copy unreadable.
+
+   SURFACES COME FROM THE VALIDATED PALETTE, not from taste. The series hues below
+   were checked with the dataviz validator against surface #1a1a19 and pass all
+   six checks: lightness band, chroma floor, CVD separation (worst adjacent
+   deltaE 8.4 protan), normal-vision floor (19.3), and >=3:1 contrast. Moving the
+   surface darker (the old #0a0a0a) invalidates that run, so the surface and the
+   series colors have to move together or not at all.
+
+   Series hues are assigned in FIXED ORDER and never cycled. A ninth series folds
+   into "Other" or becomes small multiples; it is never a generated hue. */
 :root {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  color-scheme: dark;
+
+  /* Surfaces, lightest content sitting on the darkest ground */
+  --surface-0: #131312;   /* page ground */
+  --surface-1: #1a1a19;   /* card / chart surface -- the validated surface */
+  --surface-2: #232321;   /* raised: hovered rows, popovers, active controls */
+  --surface-3: #2e2e2b;   /* borders and dividers */
+
+  /* Ink */
+  --text-primary:   #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted:     #8a8a80;
+
+  /* Categorical series, fixed order, validated for this surface */
+  --series-1: #3987e5;  /* blue    */
+  --series-2: #d95926;  /* orange  */
+  --series-3: #199e70;  /* aqua    */
+  --series-4: #c98500;  /* yellow  */
+  --series-5: #d55181;  /* magenta */
+  --series-6: #008300;  /* green   */
+  --series-7: #9085e9;  /* violet  */
+  --series-8: #e66767;  /* red     */
+
+  /* Status is RESERVED. Never reused as "series 4", and always shipped with a
+     label or icon so state is never carried by color alone. */
+  --status-good:     #199e70;
+  --status-warning:  #c98500;
+  --status-serious:  #d95926;
+  --status-critical: #e66767;
+
+  /* Sequential ramp, single hue light->dark, for magnitude only */
+  --seq-100: #cde2fb;
+  --seq-300: #6da7ec;
+  --seq-450: #2a78d6;
+  --seq-600: #184f95;
+
+  --radius: 14px;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--surface-0);
+  --color-foreground: var(--text-primary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--surface-0);
+  color: var(--text-primary);
+  /* The theme block above declared --font-geist-sans for months while the layout
+     never loaded the font, so every surface silently rendered in Arial. The font
+     is now loaded in layout.tsx and this falls back through a real stack. */
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Numbers in tables and stat tiles must align on the decimal and must not jitter
+   as values tick. Tabular figures, always. */
+.tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+/* Recessive grid and axes: the data is the subject, the scaffolding is not. */
+.recharts-cartesian-grid line { stroke: var(--surface-3); }
+.recharts-cartesian-axis-line,
+.recharts-cartesian-axis-tick-line { stroke: var(--surface-3); }
+.recharts-text { fill: var(--text-muted); font-size: 11px; }
+.recharts-tooltip-wrapper { outline: none; }
+
+/* Focus is visible for keyboard users on every interactive surface. */
+:where(button, a, [role="button"], [tabindex]):focus-visible {
+  outline: 2px solid var(--series-1);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
