@@ -18,6 +18,8 @@ sources:
       - name: lh_shiller
       - name: lh_jst
       - name: lh_boe
+      - name: lh_maddison
+      - name: lh_imf_debt
       # Stripe (Ampwell revenue)
       - name: stripe_charges
       - name: stripe_invoices

@@ -1,12 +1,22 @@
--- Fails if debt-to-GDP looks like a raw JST ratio instead of a percentage.
+-- Fails if debt-to-GDP came through as a raw ratio instead of a percentage.
 --
--- Origin 2026-09-02: mart_big_cycle_comparative read the JST debtgdp series raw.
--- Japan came out at 2.5 instead of 254, and ALL 18 countries were classified into
--- stage 1, "New world order", the single most flattering stage in the model. The
--- dbt build passed. Only reading the numbers caught it.
+-- ORIGIN 2026-09-02: mart_big_cycle_comparative read the JST debtgdp series raw.
+-- Japan came out at 2.5 instead of 254, the USA at 1.3, and ALL 18 countries
+-- landed in stage 1 "New world order", the most flattering stage in the model.
+-- The dbt build passed. Only reading the numbers caught it.
 --
--- No modern advanced economy has public debt below 5% of GDP. A value under 5 for a
--- post-1945 observation means the ratio came through unscaled.
-SELECT entity, as_of_year, debt_to_gdp
+-- FIRST VERSION OF THIS TEST WAS WRONG and would have blocked real data. It
+-- flagged any post-1945 observation under 5%, which is fine for JST but fires on
+-- China 1984 at 0.97%, a genuine figure from before China issued meaningful public
+-- debt. A guard that rejects true observations is worse than no guard, because the
+-- fix is to weaken it and then it protects nothing.
+--
+-- The units bug is a WHOLE-PANEL failure: if the scale is wrong, it is wrong for
+-- everyone at once. So the test asks a panel-level question instead of a row-level
+-- one. Japan has carried the highest public debt in the developed world for
+-- decades and is nowhere near 3% of GDP; if the maximum observation in the most
+-- recent year is under 50, the scale broke.
+SELECT
+    MAX(debt_to_gdp) AS max_debt_in_latest_year
 FROM {{ ref('mart_big_cycle_comparative') }}
-WHERE as_of_year >= 1945 AND debt_to_gdp < 5
+HAVING MAX(debt_to_gdp) < 50

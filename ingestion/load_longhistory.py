@@ -1,6 +1,6 @@
 """Long-history bronze loader (dlt).
 
-Reads the normalized JSON written by extract_longhistory.py and loads three
+Reads the normalized JSON written by extract_longhistory.py and loads five
 bronze tables. Kept separate from the macro pipeline because these datasets are
 revised annually at most, so they must not ride the daily FRED cron.
 
@@ -30,6 +30,8 @@ TABLES = {
     "shiller": "lh_shiller",
     "jst": "lh_jst",
     "boe": "lh_boe",
+    "maddison": "lh_maddison",
+    "imf_debt": "lh_imf_debt",
 }
 
 

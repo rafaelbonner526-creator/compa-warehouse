@@ -40,14 +40,23 @@ models:
       bands as of their own latest year. JST ends 2020, so this is a 2020 snapshot and
       NOT comparable to mart_big_cycle, which reads live FRED data for the US only.
     columns:
-      - name: entity
-        description: Country name as JST spells it.
+      - name: country_code
+        description: ISO3 code, as the IMF Historical Public Debt Database uses.
         tests: [not_null, unique]
+      - name: country
+        description: Readable name for the ten powers the framework is about; ISO3 otherwise.
+        tests: [not_null]
+      - name: years_on_record
+        description: >
+          How many annual observations exist for this country. Ranges from 225 (UK,
+          from 1800) to 35 (China, from 1984), so a percentile of own history is not
+          comparable across rows without reading this.
+        tests: [not_null]
       - name: as_of_year
         description: Year the debt figure is from. Emitted so nobody reads it as current.
         tests: [not_null]
       - name: debt_to_gdp
-        description: Public debt as a PERCENT of GDP. JST stores a ratio; this is scaled by 100.
+        description: Public debt as a PERCENT of GDP, already scaled at source.
         tests: [not_null]
       - name: stage_name
         tests:
