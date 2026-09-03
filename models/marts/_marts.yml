@@ -33,3 +33,39 @@ models:
         tests:
           - unique
           - not_null
+
+  - name: mart_big_cycle_comparative
+    description: >
+      Where 18 economies sit on Dalio's long-term debt cycle, all scored on the same
+      bands as of their own latest year. JST ends 2020, so this is a 2020 snapshot and
+      NOT comparable to mart_big_cycle, which reads live FRED data for the US only.
+    columns:
+      - name: entity
+        description: Country name as JST spells it.
+        tests: [not_null, unique]
+      - name: as_of_year
+        description: Year the debt figure is from. Emitted so nobody reads it as current.
+        tests: [not_null]
+      - name: debt_to_gdp
+        description: Public debt as a PERCENT of GDP. JST stores a ratio; this is scaled by 100.
+        tests: [not_null]
+      - name: stage_name
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['New world order', 'Peace and prosperity', 'Debt bubble',
+                       'Top of cycle', 'Decline', 'New world order (next)']
+      - name: trajectory
+        tests:
+          - accepted_values:
+              values: ['rising fast', 'rising', 'flat', 'falling', 'falling fast', 'unknown']
+
+  - name: int_big_cycle_stages
+    description: >
+      The six Dalio stage bands, defined once. Both mart_big_cycle and
+      mart_big_cycle_comparative read them from here so the thresholds cannot drift.
+    columns:
+      - name: stage_order
+        tests: [not_null, unique]
+      - name: stage_name
+        tests: [not_null, unique]

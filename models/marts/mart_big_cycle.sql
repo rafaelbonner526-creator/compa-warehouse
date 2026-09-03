@@ -3,29 +3,16 @@
 -- Emits all six stages as rows with the current one flagged, so the UI can draw a
 -- timeline rather than just a label.
 --
--- Stage thresholds are NOT invented here. They are lifted from the already-existing
--- empire-health-monitor skill
+-- Stage thresholds live in int_big_cycle_stages, which is the ONLY definition.
+-- Extracted there 2026-09-02 when mart_big_cycle_comparative became a second
+-- consumer. Originally lifted from the empire-health-monitor skill
 -- (COMPA/.claude/skills/empire-health-monitor/SKILL.md) so there is one definition
 -- of the stage model, not two that drift. The skill's stage 3/4 ranges overlapped
 -- (80-120 and >100); resolved here to contiguous non-overlapping bands and the
 -- resolution is recorded in that skill.
 --
 -- Stage 6 is not detectable from debt-to-GDP and is never auto-selected.
-WITH stages AS (
-    SELECT 1 AS stage_order, 'New world order'   AS stage_name,   0.0 AS debt_min,  60.0 AS debt_max,
-           'New reserve currency established, low debt, strong currency' AS description,
-           'Standard allocation, no debasement hedge needed' AS implication
-    UNION ALL SELECT 2, 'Peace and prosperity',  60.0,  80.0,
-           'Growth-fueled expansion, debt still manageable', 'Standard allocation'
-    UNION ALL SELECT 3, 'Debt bubble',           80.0, 100.0,
-           'Debt accumulating, financial engineering rising', 'Monitor, slight gold bias'
-    UNION ALL SELECT 4, 'Top of cycle',         100.0, 130.0,
-           'Peak power, internal conflict rising, rival emerging', 'Validate gold toward cap, international bias'
-    UNION ALL SELECT 5, 'Decline',              130.0, 999.0,
-           'Debt monetization, currency weakness, reserve status eroding', 'Max gold within cap, heavy international bias'
-    UNION ALL SELECT 6, 'New world order (next)', 999.0, 9999.0,
-           'Reserve currency transfer complete', 'Outside framework scope'
-),
+WITH stages AS (SELECT * FROM {{ ref('int_big_cycle_stages') }}),
 d AS (SELECT debt_to_gdp, debt_to_gdp_chg_1y FROM {{ ref('mart_macro_equilibrium') }})
 SELECT
     s.stage_order,
