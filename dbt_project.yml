@@ -19,3 +19,11 @@ seeds:
         # the UNNEST-vs-UNION-ALL notes in the cycle models: this project has two
         # engines and every raw type name has to survive both.
         value: "{{ 'float64' if target.type == 'bigquery' else 'DOUBLE' }}"
+    plm_revenue_events:
+      +column_types:
+        # SECOND time this bit: dbt infers seed column types from the data, and a
+        # money column whose only row reads 1700.00 was inferred INT64 and failed
+        # to parse. The baselines fix above was scoped to one seed, so it did not
+        # protect this one. Any seed with a money or rate column needs this.
+        gross_usd: "{{ 'float64' if target.type == 'bigquery' else 'DOUBLE' }}"
+        net_usd: "{{ 'float64' if target.type == 'bigquery' else 'DOUBLE' }}"

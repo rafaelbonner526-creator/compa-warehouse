@@ -386,6 +386,28 @@ def section_market(c):
     return out
 
 
+# ------------------------------------------------------------------ plm p&l
+# Cash in and cash out for the product, all time. Labour is NOT in here and the
+# line says so: 305 commits over 8.5 months is the largest input by far, and a
+# "profit" that quietly omits it would be the most misleading number on the page.
+def section_plm_pnl(c):
+    r = rows(c, f"SELECT * FROM `{PROJECT}.gold.mart_plm_pnl`")
+    if not r:
+        return []
+    d = r[0]
+    rev, cost = d.get("revenue_all_time"), d.get("cost_all_time")
+    if rev is None or cost is None:
+        return []
+    net = float(d.get("net_all_time") or 0)
+    out = ["PLM, MONEY IN AND OUT", ""]
+    out.append(f"  {money(float(rev))} earned, {money(float(cost))} spent on tools, "
+               f"{money(abs(net))} {'ahead' if net >= 0 else 'behind'}. Your time is not counted.")
+    per_mo = d.get("cost_per_month")
+    if per_mo is not None and float(per_mo) > 0:
+        out.append(f"    Running cost {money(float(per_mo))} a month against a $50 retainer.")
+    return out
+
+
 # --------------------------------------------------------------- tooling cost
 # What the tools cost, from money that actually left the account (Monarch), not
 # from vendor dashboards.
@@ -602,6 +624,7 @@ SECTIONS = {
     "market": section_market,
     "standing": section_standing,
     "plm": section_plm,
+    "plm_pnl": section_plm_pnl,
     "spend": section_spend,
     "outreach": section_outreach,
 }

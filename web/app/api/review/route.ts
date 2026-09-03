@@ -7,7 +7,7 @@ export const revalidate = 0;
 export async function GET() {
   try {
     const run = makeRunner();
-    const [digest, history, plmOps] = await Promise.all([
+    const [digest, history, plmOps, plmPnl] = await Promise.all([
       run(
         `SELECT severity, section, headline, detail, value
          FROM \`${P}.gold.mart_review_digest\` ORDER BY severity, ord, headline`,
@@ -20,8 +20,9 @@ export async function GET() {
       // Operational telemetry only: catalog aggregates and RAG eval metrics.
       // No patient data is in this warehouse, by construction.
       run(`SELECT * FROM \`${P}.gold.mart_plm_ops\``),
+      run(`SELECT * FROM \`${P}.gold.mart_plm_pnl\``),
     ]);
-    return NextResponse.json({ digest, history, plmOps });
+    return NextResponse.json({ digest, history, plmOps, plmPnl });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }

@@ -72,6 +72,10 @@ llm AS (
 SELECT
     p.component, p.serves, p.cost_type, p.note,
     p.charges, p.spend_usd, p.spend_90d, p.first_charge, p.last_charge,
+    -- A monthly rate, because that is how a subscription is actually thought
+    -- about. Reporting Resend as "$60" over 90 days was accurate and read as
+    -- three times its real $20/mo price.
+    ROUND(p.spend_90d / 3.0, 2) AS spend_per_month,
     -- No charge ever matched. Either the service is genuinely free at this tier,
     -- or the merchant string does not contain the pattern. Say so; do not let a
     -- zero read as a measured zero.

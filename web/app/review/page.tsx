@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 type Row = Record<string, string | number | null>;
-type Data = { digest: Row[]; history: Row[]; plmOps: Row[] };
+type Data = { digest: Row[]; history: Row[]; plmOps: Row[]; plmPnl: Row[] };
 
 const SEVERITY = {
   1: { label: "Act now", tone: "text-red-400", dot: "bg-red-400" },
@@ -74,6 +74,58 @@ function PlmOps({ rows }: { rows: Row[] }) {
   );
 }
 
+
+// PLM money in and out, all time.
+//
+// LABOUR IS NOT IN HERE and the panel says so on its face. 305 commits over 8.5
+// months is by far the largest input, and a "profit" that silently omits it
+// would be the most misleading number on this dashboard.
+function PlmPnl({ rows }: { rows: Row[] }) {
+  if (!rows?.length) return null;
+  const d = rows[0];
+  const n = (v: unknown) => (v == null ? 0 : Number(v));
+  const rev = n(d.revenue_all_time);
+  const cost = n(d.cost_all_time);
+  const net = n(d.net_all_time);
+  const usd = (v: number) => `$${Math.round(v).toLocaleString("en-US")}`;
+  const costPct = rev > 0 ? Math.min(100, (cost / rev) * 100) : 0;
+  return (
+    <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
+      <h2 className="text-sm font-semibold text-zinc-300">PLM, money in and out</h2>
+      <div className="mt-3 grid grid-cols-3 gap-3">
+        <div>
+          <div className="text-xs text-zinc-500">Earned</div>
+          <div className="text-xl font-semibold text-zinc-100">{usd(rev)}</div>
+          <div className="text-[11px] text-zinc-500">
+            {usd(n(d.revenue_build_manual))} build + {usd(n(d.revenue_retainer_stripe))} retainer
+          </div>
+        </div>
+        <div>
+          <div className="text-xs text-zinc-500">Spent on tools</div>
+          <div className="text-xl font-semibold text-zinc-100">{usd(cost)}</div>
+          <div className="text-[11px] text-zinc-500">
+            {usd(n(d.cost_per_month))}/mo run rate
+          </div>
+        </div>
+        <div>
+          <div className="text-xs text-zinc-500">Net</div>
+          <div className="text-xl font-semibold" style={{ color: net >= 0 ? "#34d399" : "#f87171" }}>
+            {net >= 0 ? "+" : "-"}{usd(Math.abs(net))}
+          </div>
+          <div className="text-[11px] text-zinc-500">your time not counted</div>
+        </div>
+      </div>
+      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-zinc-800">
+        <div className="h-full rounded-full bg-red-400/70" style={{ width: `${costPct}%` }} />
+      </div>
+      <p className="mt-2 text-[11px] leading-snug text-zinc-500">
+        Costs are {costPct.toFixed(0)}% of revenue. The build fee is recorded by hand:
+        it arrived as a bank transfer with no merchant name identifying it.
+      </p>
+    </div>
+  );
+}
+
 export default function Review() {
   const [d, setD] = useState<Data | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -97,6 +149,7 @@ export default function Review() {
 
   return (
     <main className="mx-auto max-w-3xl px-5 pb-16 pt-4">
+      <PlmPnl rows={d.plmPnl} />
       <PlmOps rows={d.plmOps} />
       <h1 className="text-2xl font-semibold">Review</h1>
       <p className="mt-1 text-sm leading-relaxed text-zinc-500">

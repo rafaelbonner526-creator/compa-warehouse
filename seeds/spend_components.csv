@@ -1,8 +1,8 @@
 match_pattern,component,serves,cost_type,note
 anthropic,Claude API,mixed,metered,Card total covers Claude Code and personal use as well as PLM. Langfuse is the only source that isolates PLM's share
 openai,OpenAI API,plm,metered,Embeddings for retrieval
-railway,Railway,plm,subscription,BILLING NOT VISIBLE. Hobby plan is $5/mo but only one $5 charge exists in 14 months of transactions. Either a payment method Monarch does not sync or running on credit
-supabase,Supabase,plm,subscription,BILLING NOT VISIBLE. Zero charges ever found. Either free tier or a payment method Monarch does not sync
+railway,Railway,plm,credit,CONFIRMED BY RAFA 2026-09-03: charged $5 once in May 2026 and nothing since. Behaves like a prepaid credit drawn down by usage rather than a monthly subscription. Not a recurring cost today
+supabase,Supabase,plm,free,"CONFIRMED BY RAFA 2026-09-03: free tier. Zero charges is correct and measured, not a gap in the matcher"
 resend,Resend,plm,subscription,Transactional email to members
 pdfmunk,pdfmunk,plm,metered,Report PDF rendering
 htmlcsstoimg,HTMLCSStoImage,plm,metered,Image rendering. Found 2026-09-03 by hunting unmatched merchants
