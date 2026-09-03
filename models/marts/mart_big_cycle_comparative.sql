@@ -60,13 +60,21 @@ pct AS (
 ),
 -- The powers Dalio's arc is actually about, plus the current rivals. Everything
 -- else stays in the table; this only marks what a focused view should lead with.
+-- UNION ALL rather than UNNEST(ARRAY<STRUCT>). The struct-array form is BigQuery
+-- only and fails to parse on DuckDB, which is what CI builds against, so the model
+-- built green in prod and broke every CI run. int_big_cycle_stages already uses
+-- this form; matching it keeps every model in this project portable across both.
 powers AS (
-    SELECT * FROM UNNEST([
-        STRUCT('USA' AS code, 'United States' AS label),
-        ('CHN', 'China'), ('RUS', 'Russia'), ('GBR', 'United Kingdom'),
-        ('NLD', 'Netherlands'), ('ESP', 'Spain'), ('FRA', 'France'),
-        ('DEU', 'Germany'), ('JPN', 'Japan'), ('IND', 'India')
-    ])
+              SELECT 'USA' AS code, 'United States'  AS label
+    UNION ALL SELECT 'CHN', 'China'
+    UNION ALL SELECT 'RUS', 'Russia'
+    UNION ALL SELECT 'GBR', 'United Kingdom'
+    UNION ALL SELECT 'NLD', 'Netherlands'
+    UNION ALL SELECT 'ESP', 'Spain'
+    UNION ALL SELECT 'FRA', 'France'
+    UNION ALL SELECT 'DEU', 'Germany'
+    UNION ALL SELECT 'JPN', 'Japan'
+    UNION ALL SELECT 'IND', 'India'
 )
 SELECT
     t.entity                       AS country_code,

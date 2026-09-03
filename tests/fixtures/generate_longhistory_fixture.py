@@ -27,6 +27,56 @@ Y0, Y1 = 1870, 2020
 CYCLE = 18  # synthetic oscillation period, so troughs are findable by construction
 
 
+# Added 2026-09-02 alongside the Maddison and IMF sources. Without these, CI failed
+# with "Table with name lh_maddison does not exist" on every push: the staging
+# models existed but nothing built their bronze tables in the fixture environment.
+IMF_CODES = ["USA", "GBR", "CHN", "RUS", "JPN", "NLD"]
+
+
+def imf_debt() -> list[dict]:
+    """Debt-to-GDP as PERCENTAGES, matching the real IMF indicator.
+
+    The fixture must carry the same units as production or it would hide the exact
+    bug that shipped on 2026-09-02, when a ratio was read as a percentage and put
+    every country in the most flattering cycle stage. Japan is deliberately given a
+    high level so the panel-level units guard has something to pass against.
+    """
+    rows = []
+    for i, code in enumerate(IMF_CODES):
+        base = [120.0, 100.0, 85.0, 20.0, 235.0, 45.0][i]
+        for j, year in enumerate(range(1900, 2025)):
+            rows.append({
+                "entity": code, "year": year, "period": 0,
+                "series": "public_debt_to_gdp",
+                "value": round(base * (0.5 + 0.5 * (j / 124.0)), 4),
+            })
+    return rows
+
+
+def maddison() -> list[dict]:
+    """GDP per capita, population, gdp_total, plus the WORLD total row.
+
+    WORLD is what mart_world_power divides by. Omitting it would make the mart build
+    green and empty, which is worse than failing, so it is generated here explicitly.
+    """
+    countries = ["United States", "China", "United Kingdom", "Netherlands"]
+    rows = []
+    for i, c in enumerate(countries):
+        pc0, pop0 = [3000.0, 700.0, 2500.0, 2200.0][i], [10000.0, 400000.0, 25000.0, 3000.0][i]
+        for j, year in enumerate(range(1820, 2023, 10)):
+            pc, pop = pc0 * (1.02**j), pop0 * (1.01**j)
+            rows += [
+                {"entity": c, "year": year, "period": 0, "series": "gdp_per_capita", "value": round(pc, 4)},
+                {"entity": c, "year": year, "period": 0, "series": "population", "value": round(pop, 4)},
+                {"entity": c, "year": year, "period": 0, "series": "gdp_total", "value": round(pc * pop, 4)},
+            ]
+    for j, year in enumerate(range(1820, 2023, 10)):
+        world_pc, world_pop = 1200.0 * (1.02**j), 1000000.0 * (1.012**j)
+        rows.append({"entity": "WORLD", "year": year, "period": 0,
+                     "series": "gdp_total", "value": round(world_pc * world_pop, 4)})
+    return rows
+
+
 def jst() -> list[dict]:
     rows = []
     for ci, c in enumerate(COUNTRIES):
@@ -83,7 +133,8 @@ def boe() -> list[dict]:
 
 
 def main() -> None:
-    for name, fn in (("jst", jst), ("shiller", shiller), ("boe", boe)):
+    for name, fn in (("jst", jst), ("shiller", shiller), ("boe", boe),
+                     ("maddison", maddison), ("imf_debt", imf_debt)):
         rows = fn()
         (OUT / f"{name}.json").write_text(json.dumps(rows))
         print(f"wrote {name}.json: {len(rows)} rows")

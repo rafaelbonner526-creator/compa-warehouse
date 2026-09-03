@@ -48,11 +48,21 @@ usable AS (
     SELECT w.year, w.world_gdp, c.countries_reporting
     FROM world w LEFT JOIN coverage c ON c.year = w.year
 ),
+-- UNION ALL rather than UNNEST(...) AS x, which is BigQuery-only syntax and made
+-- DuckDB cast the column to STRUCT(unnest VARCHAR), failing the join. See the same
+-- note in mart_big_cycle_comparative.
 powers AS (
-    SELECT country FROM UNNEST([
-        'United States', 'China', 'Russian Federation', 'United Kingdom',
-        'Netherlands', 'Spain', 'France', 'Germany', 'Japan', 'India', 'Italy'
-    ]) AS country
+              SELECT 'United States' AS country
+    UNION ALL SELECT 'China'
+    UNION ALL SELECT 'Russian Federation'
+    UNION ALL SELECT 'United Kingdom'
+    UNION ALL SELECT 'Netherlands'
+    UNION ALL SELECT 'Spain'
+    UNION ALL SELECT 'France'
+    UNION ALL SELECT 'Germany'
+    UNION ALL SELECT 'Japan'
+    UNION ALL SELECT 'India'
+    UNION ALL SELECT 'Italy'
 ),
 shares AS (
     SELECT

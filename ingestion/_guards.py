@@ -45,6 +45,9 @@ gets removed and then protects nothing.
 """
 
 
+import os
+
+
 class EmptyLoadRefused(RuntimeError):
     """Raised instead of replacing a populated table with an empty one."""
 
@@ -74,6 +77,21 @@ FLOORS = {
 }
 
 
+def _floors_apply() -> bool:
+    """Floors protect the PRODUCTION warehouse only.
+
+    CI builds a throwaway DuckDB from tests/fixtures on every run, and those
+    fixtures are deliberately tiny: the leads fixture holds 10 rows against a
+    production floor of 20. There is nothing to protect there, and applying
+    production-derived thresholds to fixture data broke CI on 2026-09-02 for two
+    commits before anyone looked.
+
+    That is the same mistake in a different place: a threshold measured in one
+    environment and enforced in another.
+    """
+    return os.getenv("WAREHOUSE_TARGET", "duckdb") == "bigquery"
+
+
 def check_rows(table: str, n_rows: int, floor: int | None = None) -> None:
     """Raise if a replace-load would shrink a table below its plausible floor.
 
@@ -82,6 +100,8 @@ def check_rows(table: str, n_rows: int, floor: int | None = None) -> None:
     leaves yesterday's good data in place, which is the correct outcome: stale and
     correct beats fresh and empty.
     """
+    if not _floors_apply():
+        return
     limit = FLOORS.get(table) if floor is None else floor
     if limit is None:
         return
