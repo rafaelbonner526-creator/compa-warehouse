@@ -78,3 +78,20 @@ models:
         tests: [not_null, unique]
       - name: stage_name
         tests: [not_null, unique]
+
+  - name: mart_world_power
+    description: >
+      Share of world GDP for eleven powers at Maddison benchmark years, 1820-2022.
+      The relative-power side of the Dalio framing: debt says how indebted a country
+      is, this says who is ascending and who is being overtaken. Denominator is
+      Maddison's own published world total, never a sum of reporting countries.
+    columns:
+      - name: country
+        tests: [not_null]
+      - name: year
+        tests: [not_null]
+      - name: pct_of_world_gdp
+        description: Percent of world output that year. UK peaks ~9% in 1870, US ~27% in 1950.
+        tests: [not_null]
+      - name: pct_of_own_peak
+        description: Where the country sits today relative to its own maximum share.

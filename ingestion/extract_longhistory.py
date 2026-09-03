@@ -242,6 +242,35 @@ def do_maddison(path: Path) -> list[dict]:
     for must in ("China", "Russian Federation", "United States"):
         if must not in ents:
             print(f"    WARN maddison: expected country absent: {must}")
+
+    # World aggregate, from Maddison's own "Regional data" sheet.
+    #
+    # WHY NOT JUST SUM THE COUNTRIES: coverage is sparse AND non-monotonic. 55
+    # countries report in 1820, 17 in 1830, 67 in 1870, 44 in 1900. Summing
+    # whoever happens to report makes the denominator collapse in thin years, so
+    # every power appears to "peak" in the 1830s-40s. That artifact put the UK at
+    # 25% of world GDP in 1845 against a real figure nearer 9%.
+    #
+    # Maddison publishes world GDP per capita and world population at benchmark
+    # years. Their product is the authoritative denominator and it is only defined
+    # where Maddison says it is, which is the honest constraint.
+    reg = pd.read_excel(path, sheet_name="Regional data", header=None)
+    hdr = [str(v) for v in reg.iloc[1].tolist()]
+    W_PC, W_POP = 9, 19
+    if not (hdr[W_POP].strip().lower().startswith("world population")):
+        print(f"    SKIP maddison world total: col {W_POP} is '{hdr[W_POP][:30]}', "
+              f"expected 'World Population'. Sheet layout changed.")
+        return rows
+    years = pd.to_numeric(reg.iloc[2:, 0], errors="coerce")
+    wpc = pd.to_numeric(reg.iloc[2:, W_PC], errors="coerce")
+    wpop = pd.to_numeric(reg.iloc[2:, W_POP], errors="coerce")
+    n_world = 0
+    for year, pc, pp in zip(years, wpc, wpop):
+        if pd.notna(year) and pd.notna(pc) and pd.notna(pp):
+            rows.append({"entity": "WORLD", "year": int(year), "period": 0,
+                         "series": "gdp_total", "value": float(pc) * float(pp)})
+            n_world += 1
+    print(f"    maddison: {n_world} world-total benchmark years")
     return rows
 
 
