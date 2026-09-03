@@ -133,3 +133,18 @@ body {
   color: #ffffff;
 }
 .btn-primary:hover { background: color-mix(in oklab, var(--series-1) 85%, #fff); }
+
+/* "You are here" emphasis: the current stage in a cycle, the active row in a
+   ladder. Uses the primary series hue rather than a raw indigo step so it moves
+   with the palette, and it is always paired with a text label so the highlight
+   is never the only cue. */
+.is-now {
+  border-color: color-mix(in oklab, var(--series-1) 70%, transparent);
+  background: color-mix(in oklab, var(--series-1) 16%, var(--surface-1));
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--series-1) 30%, transparent);
+}
+.is-now-chip {
+  background: color-mix(in oklab, var(--series-1) 22%, transparent);
+  color: var(--series-1);
+}
+.tx-now { color: var(--series-1); }

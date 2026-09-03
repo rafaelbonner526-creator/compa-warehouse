@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Card as UICard, Page } from "@/components/ui";
 import {
   Area,
   AreaChart,
@@ -19,9 +20,12 @@ import {
   YAxis,
 } from "recharts";
 
-const GREEN = "#34d399";
-const ACCENT = "#818cf8";
-const AMBER = "#fbbf24";
+/* Chart colours come from the validated token set, never from hex typed here.
+   The three constants this replaces (#34d399, #818cf8, #fbbf24) were picked by
+   eye and never run through the CVD/contrast checks the token palette passed. */
+const GREEN = "var(--series-3)";   // aqua: the cycle-low markers
+const ACCENT = "var(--series-7)";  // violet: the yield line
+const AMBER = "var(--series-4)";   // yellow: house prices
 
 type Row = Record<string, string | number | boolean | null>;
 type Data = {
@@ -120,10 +124,11 @@ const BOX_DETAIL: Record<
   },
 };
 
+/* Delegates to the shared primitive. Keeping the local name means the 17 call
+   sites below do not have to change, while radius, surface and border now move
+   with the rest of the app instead of drifting. */
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={`rounded-2xl border bd-s3 bg-s1 p-5 ${className}`}>{children}</div>
-  );
+  return <UICard className={className}>{children}</UICard>;
 }
 
 function Note({ children }: { children: React.ReactNode }) {
@@ -145,7 +150,7 @@ function SectionHead({
         <h2 className="text-lg font-semibold">{title}</h2>
         <Link
           href={`/market/about#${anchor}`}
-          className="text-xs text-indigo-400 underline-offset-2 hover:underline"
+          className="text-xs underline-offset-2 hover:underline" style={{ color: "var(--series-1)" }}
         >
           how this works →
         </Link>
@@ -209,8 +214,8 @@ export default function Market() {
       .catch((e) => setErr(String(e)));
   }, []);
 
-  if (err) return <main className="p-8 tx-crit">Error: {err}</main>;
-  if (!d) return <main className="p-8 tx-m">Loading…</main>;
+  if (err) return <Page title="Market"><Card><p className="tx-m text-xs">Could not load: {err}</p></Card></Page>;
+  if (!d) return <Page title="Market"><Card><p className="tx-m text-xs">Loading…</p></Card></Page>;
 
   const r = d.regime;
   const quadrant = r ? String(r.quadrant) : "Unknown";
@@ -290,17 +295,22 @@ export default function Market() {
   ];
 
   return (
-    <main className="mx-auto max-w-5xl px-5 pb-16 pt-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-2xl font-semibold">Market</h1>
-        {refreshed && <span className="text-xs tx-m">Last refreshed {refreshed} ET</span>}
-      </div>
-      <p className="mt-1 text-sm tx-m">
-        Macro signals from FRED, read through Dalio&apos;s cycle frameworks.{" "}
-        <Link href="/market/about" className="text-indigo-400 underline-offset-2 hover:underline">
-          Full explanation of every section →
-        </Link>
-      </p>
+    <Page
+      title="Market"
+      subtitle="Macro signals from FRED, read through Dalio's cycle frameworks. Every panel says where its number came from and how old it is."
+      actions={
+        <>
+          {refreshed && <span className="text-xs tx-m">Updated {refreshed} ET</span>}
+          <Link
+            href="/market/about"
+            className="rounded-full px-3 py-1 text-xs underline-offset-2 hover:underline"
+            style={{ background: "var(--surface-2)", border: "1px solid var(--surface-3)", color: "var(--text-secondary)" }}
+          >
+            How this works →
+          </Link>
+        </>
+      }
+    >
 
       <div className="mt-3 rounded-xl border callout px-4 py-3 text-xs leading-relaxed callout-strong">
         <strong className="font-semibold callout-strong">Read-only.</strong> Signals, never verdicts,
@@ -366,14 +376,14 @@ export default function Market() {
               key={key}
               className={`rounded-2xl border p-5 ${
                 isNow
-                  ? "border-indigo-500/70 bg-indigo-950/30 ring-1 ring-indigo-500/30"
+                  ? "is-now"
                   : "bd-s3 bg-s1"
               }`}
             >
               <div className="flex items-start justify-between gap-3">
                 <span className="text-sm font-semibold tx-1">{String(b.box_label)}</span>
                 {isNow && (
-                  <span className="shrink-0 rounded-full bg-indigo-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-300">
+                  <span className="is-now-chip shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
                     heading here
                   </span>
                 )}
@@ -674,16 +684,16 @@ export default function Market() {
               .sort((a, b) => b.cape - a.cape)
               .map((x) => (
                 <div key={x.label} className="flex items-center gap-3">
-                  <span className={`w-32 shrink-0 text-xs ${x.now ? "font-semibold text-indigo-300" : "tx-m"}`}>
+                  <span className={`w-32 shrink-0 text-xs ${x.now ? "font-semibold tx-now" : "tx-m"}`}>
                     {x.label}
                   </span>
                   <div className="h-4 flex-1 overflow-hidden rounded bg-s2">
                     <div
-                      className={`h-full rounded ${x.now ? "bg-indigo-500" : "bg-s2"}`}
+                      className={`h-full rounded ${x.now ? "" : "bg-s2"}`}
                       style={{ width: `${(x.cape / Number(val.max_cape)) * 100}%` }}
                     />
                   </div>
-                  <span className={`w-10 shrink-0 text-right text-xs tabular-nums ${x.now ? "font-semibold text-indigo-300" : "tx-m"}`}>
+                  <span className={`w-10 shrink-0 text-right text-xs tabular-nums ${x.now ? "font-semibold tx-now" : "tx-m"}`}>
                     {x.cape}
                   </span>
                 </div>
@@ -800,16 +810,16 @@ export default function Market() {
               <div
                 key={String(s.stage_order)}
                 className={`rounded-xl border px-4 py-3 ${
-                  cur ? "border-indigo-500/70 bg-indigo-950/30" : "bd-s3 bg-s1"
+                  cur ? " " : "bd-s3 bg-s1"
                 }`}
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span
-                    className={`text-sm font-medium ${cur ? "text-indigo-200" : unreachable ? "tx-m" : "tx-2"}`}
+                    className={`text-sm font-medium ${cur ? "tx-now" : unreachable ? "tx-m" : "tx-2"}`}
                   >
                     {String(s.stage_order)}. {String(s.stage_name)}
                     {cur && (
-                      <span className="ml-2 rounded-full bg-indigo-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-300">
+                      <span className="is-now-chip ml-2 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
                         you are here
                       </span>
                     )}
@@ -823,7 +833,7 @@ export default function Market() {
                 <p className={`mt-1 text-xs ${cur ? "tx-2" : "tx-m"}`}>
                   {String(s.description)}
                 </p>
-                {cur && <p className="mt-2 text-xs text-indigo-300/90">→ {String(s.implication)}</p>}
+                {cur && <p className="mt-2 text-xs">→ {String(s.implication)}</p>}
               </div>
             );
           })}
@@ -910,11 +920,11 @@ export default function Market() {
               <div
                 key={String(r.country)}
                 className={`rounded-xl border px-4 py-3 ${
-                  us ? "border-indigo-500/70 bg-indigo-950/30" : "bd-s3 bg-s1"
+                  us ? " " : "bd-s3 bg-s1"
                 }`}
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className={`text-sm font-medium ${us ? "text-indigo-200" : "tx-2"}`}>
+                  <span className={`text-sm font-medium ${us ? "" : "tx-2"}`}>
                     {String(r.country)}
                     <span className="ml-2 text-[11px] font-normal tx-m">
                       {String(r.stage_name)}
@@ -969,7 +979,7 @@ export default function Market() {
                 </div>
                 <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-s2">
                   <div
-                    className="h-full rounded-full bg-indigo-500/70"
+                    className="h-full rounded-full"
                     style={{ width: `${Math.max(2, Math.min(100, ofPeak))}%` }}
                   />
                 </div>
@@ -1027,13 +1037,13 @@ export default function Market() {
               <div className="relative">
                 {/* now marker above the bar */}
                 <div
-                  className="absolute -top-6 z-10 -translate-x-1/2 whitespace-nowrap text-[11px] font-semibold text-indigo-300"
+                  className="absolute -top-6 z-10 -translate-x-1/2 whitespace-nowrap text-[11px] font-semibold"
                   style={{ left: `${Math.min(99, Math.max(1, pctComplete))}%` }}
                 >
                   today
                 </div>
                 <div
-                  className="absolute -top-1 bottom-0 z-10 w-0.5 -translate-x-1/2 bg-indigo-400"
+                  className="absolute -top-1 bottom-0 z-10 w-0.5 -translate-x-1/2"
                   style={{ left: `${Math.min(99, Math.max(1, pctComplete))}%` }}
                 />
                 <div className="flex h-12 w-full overflow-hidden rounded-lg border bd-s3">
@@ -1045,7 +1055,7 @@ export default function Market() {
                         style={{ width: `${((p.to - p.from) / 18) * 100}%` }}
                         className={`flex flex-col items-center justify-center border-r bd-s3 px-1 text-center leading-tight last:border-r-0 ${
                           active
-                            ? "bg-indigo-600/50 text-indigo-50"
+                            ? " "
                             : "bg-s1 tx-m"
                         }`}
                       >
@@ -1138,14 +1148,14 @@ export default function Market() {
                         }}
                       />
                       <Tooltip
-                        contentStyle={{ background: "#18181b", border: "1px solid #3f3f46", borderRadius: 12 }}
+                        contentStyle={{ background: "var(--surface-2)", border: "1px solid var(--surface-3)", borderRadius: 12, color: "var(--text-primary)" }}
                         labelFormatter={(v) => `${v} year cycles`}
                         formatter={(v) => [`${v} of ${Number(pc.n_intervals)}`, "count"]}
-                        cursor={{ fill: "#27272a55" }}
+                        cursor={{ fill: "var(--surface-2)" }}
                       />
                       <Bar dataKey="n" radius={[4, 4, 0, 0]}>
                         {d.cycleIntervals.map((x, i) => (
-                          <Cell key={i} fill={String(x.bucket) === "16-20" ? AMBER : "#52525b"} />
+                          <Cell key={i} fill={String(x.bucket) === "16-20" ? AMBER : "var(--surface-3)"} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -1208,7 +1218,7 @@ export default function Market() {
                     <ReferenceArea
                       x1={priorTroughDate}
                       x2={troughDate}
-                      fill="#52525b"
+                      fill="var(--surface-3)"
                       fillOpacity={0.18}
                       label={{
                         value: `previous cycle · ${Number(pc.last_us_interval_years)}y`,
@@ -1237,8 +1247,8 @@ export default function Market() {
                     }}
                   />
                   <Tooltip
-                    contentStyle={{ background: "#18181b", border: "1px solid #3f3f46", borderRadius: 12 }}
-                    labelFormatter={(v) => String(v).slice(0, 7)}
+                    contentStyle={{ background: "var(--surface-2)", border: "1px solid var(--surface-3)", borderRadius: 12, color: "var(--text-primary)" }}
+                        labelFormatter={(v) => String(v).slice(0, 7)}
                     formatter={(v) => [Number(v).toFixed(1), "index"]}
                   />
                   <Area type="monotone" dataKey="v" stroke={AMBER} strokeWidth={2} fill="url(#hpFill)" />
@@ -1322,8 +1332,8 @@ export default function Market() {
                 tickFormatter={(v) => `${v}%`}
               />
               <Tooltip
-                contentStyle={{ background: "#18181b", border: "1px solid #3f3f46", borderRadius: 12 }}
-                formatter={(v) => `${Number(v)}%`}
+                contentStyle={{ background: "var(--surface-2)", border: "1px solid var(--surface-3)", borderRadius: 12, color: "var(--text-primary)" }}
+                        formatter={(v) => `${Number(v)}%`}
               />
               <Line type="monotone" dataKey="v" stroke={ACCENT} strokeWidth={2} dot={false} />
             </LineChart>
@@ -1360,6 +1370,6 @@ export default function Market() {
         Reminder, from the same evidence base that sets the bands above: what did well is more
         expensive, not better. Rebalance toward the laggard inside the band. Do not chase.
       </p>
-    </main>
+    </Page>
   );
 }

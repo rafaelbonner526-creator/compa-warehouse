@@ -18,8 +18,8 @@ function Small({ children }: { children: React.ReactNode }) {
 
 export default function MarketAbout() {
   return (
-    <main className="mx-auto max-w-3xl px-5 pb-20 pt-4">
-      <Link href="/market" className="text-xs text-indigo-400 underline-offset-2 hover:underline">
+    <main className="mx-auto max-w-3xl px-5 pb-20 pt-2">
+      <Link href="/market" className="text-xs tx-now underline-offset-2 hover:underline">
         ← back to Market
       </Link>
       <h1 className="mt-3 text-2xl font-semibold">How the Market tab works</h1>
@@ -484,7 +484,7 @@ export default function MarketAbout() {
         the Bank of England&apos;s "A millennium of macroeconomic data for the UK".
       </Small>
       <div className="mt-8">
-        <Link href="/market" className="text-xs text-indigo-400 underline-offset-2 hover:underline">
+        <Link href="/market" className="text-xs tx-now underline-offset-2 hover:underline">
           ← back to Market
         </Link>
       </div>
