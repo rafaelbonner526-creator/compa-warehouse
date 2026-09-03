@@ -23,6 +23,8 @@ export async function GET() {
       valuationRef,
       creditCycle,
       cycleIntervals,
+      powersDebt,
+      worldShare,
       meta,
     ] = await Promise.all([
       run(
@@ -71,6 +73,22 @@ export async function GET() {
            WHERE interval_years IS NOT NULL
          ) t GROUP BY bucket, sort_key ORDER BY sort_key`,
       ),
+      // Where the major powers sit on the SAME cycle, from the IMF historical debt
+      // database. mart_big_cycle above is the US only and reads live FRED, so the
+      // two are never mixed: this one is as-of each country's latest year.
+      run(
+        `SELECT country, as_of_year, debt_to_gdp, debt_to_gdp_chg_5y, pct_of_own_history,
+                years_on_record, history_from, stage_order, stage_name, trajectory
+         FROM \`${P}.gold.mart_big_cycle_comparative\`
+         WHERE is_major_power ORDER BY debt_to_gdp DESC`,
+      ),
+      // Share of world output at Maddison benchmark years. This is the relative-power
+      // half of the arc: debt says how indebted a country is, this says who is being
+      // overtaken.
+      run(
+        `SELECT country, year, pct_of_world_gdp, peak_pct, peak_year, pct_of_own_peak
+         FROM \`${P}.gold.mart_world_power\` ORDER BY country, year`,
+      ),
       run(`SELECT max(inserted_at) AS refreshed_at FROM \`${P}.bronze._dlt_loads\``),
     ]);
     return NextResponse.json({
@@ -89,6 +107,8 @@ export async function GET() {
       valuationRef,
       creditCycle: creditCycle[0] ?? null,
       cycleIntervals,
+      powersDebt,
+      worldShare,
       refreshed_at: meta[0]?.refreshed_at ?? null,
     });
   } catch (e) {

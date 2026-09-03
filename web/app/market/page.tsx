@@ -40,6 +40,8 @@ type Data = {
   valuationRef: Row[];
   creditCycle: Row | null;
   cycleIntervals: Row[];
+  powersDebt: Row[];
+  worldShare: Row[];
   refreshed_at: string | null;
 };
 
@@ -216,6 +218,21 @@ export default function Market() {
   const eq = d.equilibrium;
   const pc = d.propertyCycle;
   const current = d.bigCycle.find((s) => s.is_current);
+
+  // One row per power: its latest share and its own peak. mart_world_power is a
+  // full time series, so collapse it here rather than shipping a second mart that
+  // says the same thing. Sorted by current share, largest first.
+  const latestShareYear = Math.max(0, ...d.worldShare.map((r) => Number(r.year)));
+  const peakRows = d.worldShare
+    .filter((r) => Number(r.year) === latestShareYear)
+    .map((r) => ({
+      country: r.country,
+      now_pct: r.pct_of_world_gdp,
+      peak_pct: r.peak_pct,
+      peak_year: r.peak_year,
+      pct_of_own_peak: r.pct_of_own_peak,
+    }))
+    .sort((a, b) => Number(b.now_pct) - Number(a.now_pct));
   const declineCount = d.declineSignals.filter((s) => s.points_to_decline === true).length;
 
   // Two boxes covered by the exact same holdings is the most useful thing this grid
@@ -867,6 +884,104 @@ export default function Market() {
           are stage 4 features, not stage 5 evidence: &quot;internal conflict rising, rival
           emerging&quot; is the literal description of the stage. The turn shows up in whether the
           world still lends to you and at what real rate, which is what these four measure.
+        </Note>
+      </Card>
+
+      {/* ---------- the same arc, other powers ---------- */}
+      <SectionHead
+        title="The same arc, other powers"
+        sub="The section above scores the United States alone. Dalio's claim is comparative: powers rise, borrow against the win, and hand off. These two panels put the others on the same measures."
+        anchor="other-powers"
+      />
+      <Card className="mt-3">
+        <div className="text-xs uppercase tracking-wide text-zinc-500">
+          Public debt, same stage bands
+        </div>
+        <p className="mt-1 text-xs leading-relaxed text-zinc-600">
+          From the IMF historical public debt database, which reaches 1800 for the UK and 1885 for
+          Russia. Each country is shown as of its own latest year. These figures are NOT comparable
+          to the live US number above, which comes from FRED.
+        </p>
+        <div className="mt-4 space-y-2">
+          {d.powersDebt.map((r) => {
+            const us = String(r.country) === "United States";
+            const pctOwn = Number(r.pct_of_own_history);
+            return (
+              <div
+                key={String(r.country)}
+                className={`rounded-xl border px-4 py-3 ${
+                  us ? "border-indigo-500/70 bg-indigo-950/30" : "border-zinc-800/70 bg-zinc-900/30"
+                }`}
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className={`text-sm font-medium ${us ? "text-indigo-200" : "text-zinc-300"}`}>
+                    {String(r.country)}
+                    <span className="ml-2 text-[11px] font-normal text-zinc-500">
+                      {String(r.stage_name)}
+                    </span>
+                  </span>
+                  <span className="text-[11px] tabular-nums text-zinc-400">
+                    {Number(r.debt_to_gdp)}% of GDP
+                    <span className="text-zinc-600">
+                      {" · "}
+                      {Number(r.debt_to_gdp_chg_5y) >= 0 ? "+" : ""}
+                      {Number(r.debt_to_gdp_chg_5y)} in 5y · {String(r.trajectory)}
+                    </span>
+                  </span>
+                </div>
+                <p className="mt-1 text-xs leading-relaxed text-zinc-600">
+                  Higher than {pctOwn}% of its own history, measured over{" "}
+                  {Number(r.years_on_record)} years since {Number(r.history_from)}. As of{" "}
+                  {Number(r.as_of_year)}.
+                </p>
+              </div>
+            );
+          })}
+        </div>
+        <Note>
+          Read the record length before the percentile. China has 35 years on file and the United
+          Kingdom has 225, so &quot;highest in its own history&quot; means something very different
+          for each. The UK sat at 176% in 1800 after the Napoleonic wars and has been here before.
+        </Note>
+      </Card>
+
+      <Card className="mt-3">
+        <div className="text-xs uppercase tracking-wide text-zinc-500">Share of world output</div>
+        <p className="mt-1 text-xs leading-relaxed text-zinc-600">
+          Maddison Project, at its benchmark years. Debt says how indebted a country is; this says
+          who is ascending and who is being overtaken.
+        </p>
+        <div className="mt-4 space-y-2">
+          {peakRows.map((r) => {
+            const share = Number(r.now_pct);
+            const ofPeak = Number(r.pct_of_own_peak);
+            return (
+              <div key={String(r.country)} className="rounded-xl border border-zinc-800/70 bg-zinc-900/30 px-4 py-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="text-sm text-zinc-300">{String(r.country)}</span>
+                  <span className="text-[11px] tabular-nums text-zinc-400">
+                    {share.toFixed(1)}% now
+                    <span className="text-zinc-600">
+                      {" · peaked "}
+                      {Number(r.peak_pct).toFixed(1)}% in {Number(r.peak_year)}
+                    </span>
+                  </span>
+                </div>
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
+                  <div
+                    className="h-full rounded-full bg-indigo-500/70"
+                    style={{ width: `${Math.max(2, Math.min(100, ofPeak))}%` }}
+                  />
+                </div>
+                <p className="mt-1 text-[11px] text-zinc-600">{ofPeak}% of its own peak</p>
+              </div>
+            );
+          })}
+        </div>
+        <Note>
+          The handoff is the point. Britain and America cross in 1870 at about 9% each. America peaks
+          at 27% in 1950. China falls from 29% in 1820 to 5% in 1950 and is back above America on
+          this measure since roughly 2015. That is the arc the stages above are describing.
         </Note>
       </Card>
 
