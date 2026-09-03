@@ -16,6 +16,7 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from _destination import get_destination
+from _guards import check_rows
 
 load_dotenv()
 
@@ -38,6 +39,7 @@ def load() -> None:
     df = pd.DataFrame(records).rename(
         columns={"date": "obs_date", "value": "obs_value"}
     )
+    check_rows("fred_observations", len(df))
     pipeline.run(
         df.astype(str), table_name="fred_observations", write_disposition="replace"
     )

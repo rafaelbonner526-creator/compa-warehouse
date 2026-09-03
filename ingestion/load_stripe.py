@@ -16,6 +16,7 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from _destination import get_destination
+from _guards import check_rows
 from extract_stripe import ENDPOINTS
 
 load_dotenv()
@@ -55,6 +56,7 @@ def load() -> None:
         # on whether data happens to be there: empty and missing are different.
         columns = ENDPOINTS[name][1]
         df = pd.DataFrame(rows, columns=columns) if rows else pd.DataFrame(columns=columns)
+        check_rows(table, len(df))
         pipeline.run(df.astype(str), table_name=table, write_disposition="replace")
         print(f"  {name} -> bronze.{table}: {len(df)} rows")
 

@@ -16,6 +16,7 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from _destination import get_destination
+from _guards import check_rows
 
 load_dotenv()
 
@@ -48,6 +49,7 @@ def load() -> None:
             print(f"  {name}: MISSING {f}, skipped")
             continue
         df = pd.DataFrame(json.loads(f.read_text()))
+        check_rows(table, len(df))
         pipeline.run(df.astype(str), table_name=table, write_disposition="replace")
         print(f"  {name} -> bronze.{table}: {len(df)} rows")
 

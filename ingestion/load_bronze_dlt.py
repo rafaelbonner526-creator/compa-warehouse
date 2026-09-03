@@ -20,6 +20,7 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from _destination import get_destination
+from _guards import check_rows
 
 load_dotenv()
 
@@ -62,6 +63,7 @@ def load() -> None:
     # state that made the pipeline un-renameable.
     # leads_master was always a plain full-refresh load, so a bare DataFrame is fine.
     df = pd.read_csv(SOURCES["leads_master"], dtype=str)
+    check_rows("leads_master", len(df))
     pipeline.run(df, table_name="leads_master", write_disposition="replace")
 
     # touch_log keeps the RESOURCE form with primary_key, and only its disposition
@@ -70,11 +72,18 @@ def load() -> None:
     # Loading a bare DataFrame instead produces a schema without `_dlt_id`, which
     # BigQuery rejects outright ("Field _dlt_id is missing in new schema") and DuckDB
     # rejects as a NOT NULL violation. Same table, same key, new disposition.
+    # Guard BEFORE the resource runs. A dlt.resource is a generator, so counting
+    # inside it would only raise mid-load, after dlt had already begun replacing.
+    # Read the file once here, check it, then hand the same rows to the resource.
+    touch_rows = pd.read_csv(SOURCES["touch_log"], dtype=str).to_dict("records")
+    check_rows("touch_log", len(touch_rows))
+
     @dlt.resource(name="touch_log", write_disposition="replace", primary_key="touch_id")
     def touch_log_resource():
-        yield pd.read_csv(SOURCES["touch_log"], dtype=str).to_dict("records")
+        yield touch_rows
 
     pipeline.run(touch_log_resource())
+    print(f"  touch_log -> bronze.touch_log: {len(touch_rows)} rows")
 
 
 if __name__ == "__main__":

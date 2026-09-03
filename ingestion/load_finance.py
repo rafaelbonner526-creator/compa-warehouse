@@ -20,6 +20,7 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from _destination import get_destination
+from _guards import check_rows
 
 load_dotenv()
 
@@ -56,27 +57,21 @@ def load() -> None:
         destination=get_destination(),
         dataset_name="bronze",
     )
-    # each is a full-refresh snapshot of the current Monarch state
-    pipeline.run(
-        frame("accounts"), table_name="mm_accounts", write_disposition="replace"
-    )
-    pipeline.run(
-        frame("categories"), table_name="mm_categories", write_disposition="replace"
-    )
-    pipeline.run(
-        frame("recurring"), table_name="mm_recurring", write_disposition="replace"
-    )
-    pipeline.run(
-        frame("transactions", drop=("tags", "attachments")),
-        table_name="mm_transactions",
-        write_disposition="replace",
-    )
-    pipeline.run(
-        frame("networth"), table_name="mm_networth", write_disposition="replace"
-    )
-    pipeline.run(
-        frame("holdings"), table_name="mm_holdings", write_disposition="replace"
-    )
+    # Each is a full-refresh snapshot of current Monarch state, so an empty frame
+    # would DELETE the table rather than add nothing. check_rows refuses that.
+    # See ingestion/_guards.py for why the floors are what they are.
+    for name, table, drop in (
+        ("accounts", "mm_accounts", ()),
+        ("categories", "mm_categories", ()),
+        ("recurring", "mm_recurring", ()),
+        ("transactions", "mm_transactions", ("tags", "attachments")),
+        ("networth", "mm_networth", ()),
+        ("holdings", "mm_holdings", ()),
+    ):
+        df = frame(name, drop=drop)
+        check_rows(table, len(df))
+        pipeline.run(df, table_name=table, write_disposition="replace")
+        print(f"  {name} -> bronze.{table}: {len(df)} rows")
 
 
 if __name__ == "__main__":
