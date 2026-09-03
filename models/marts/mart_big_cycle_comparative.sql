@@ -16,6 +16,17 @@
 -- ratio and had to be scaled by 100, which this model got wrong on first build.
 -- Do not add a multiplier here. See the panel-level guard in tests/.
 --
+-- PRIOR-YEAR STAGE IS EMITTED HERE, NOT RE-DERIVED DOWNSTREAM. The morning brief
+-- needs to know whether a power CHANGED stage, and the only honest way to answer
+-- that is to score the prior year through the same int_big_cycle_stages bands. A
+-- consumer computing its own stage would be the third copy of a threshold table
+-- that int_big_cycle_stages exists to prevent, and the drift would be silent.
+--
+-- stage_changed is deliberately NULL, never false, when the prior year is absent
+-- (China's record starts in 1984, and any country's latest year may be its first).
+-- NULL means "never checked", false means "checked and it did not move". A brief
+-- that reports an unknown as a no-change is the failure this project keeps hitting.
+--
 -- HISTORY DEPTH IS WILDLY UNEVEN AND THAT IS THE INTERESTING PART. The UK has 225
 -- years on record and sat at 176% in 1800 after the Napoleonic wars. The
 -- Netherlands has 205 and was at 142% in 1814. China has 35. A percentile of "own
@@ -42,7 +53,8 @@ traj AS (
     SELECT
         c.entity, c.as_of_year, c.debt_to_gdp,
         c.debt_to_gdp - p1.debt_to_gdp AS chg_1y,
-        c.debt_to_gdp - p5.debt_to_gdp AS chg_5y
+        c.debt_to_gdp - p5.debt_to_gdp AS chg_5y,
+        p1.debt_to_gdp AS prior_debt_to_gdp
     FROM cur c
     LEFT JOIN debt p1 ON p1.entity = c.entity AND p1.year = c.as_of_year - 1
     LEFT JOIN debt p5 ON p5.entity = c.entity AND p5.year = c.as_of_year - 5
@@ -88,6 +100,11 @@ SELECT
     pc.years_on_record,
     pc.history_from,
     s.stage_order, s.stage_name, s.description, s.implication,
+    sp.stage_name AS prior_stage_name,
+    -- NULL when the prior year does not exist. See the header note.
+    CASE WHEN sp.stage_name IS NULL THEN NULL
+         ELSE sp.stage_name != s.stage_name
+    END AS stage_changed,
     CASE
         WHEN t.chg_5y IS NULL THEN 'unknown'
         WHEN t.chg_5y >  10 THEN 'rising fast'
@@ -101,4 +118,6 @@ FROM traj t
 JOIN pct pc ON pc.entity = t.entity
 LEFT JOIN powers p ON p.code = t.entity
 JOIN stages s ON t.debt_to_gdp >= s.debt_min AND t.debt_to_gdp < s.debt_max
+LEFT JOIN stages sp ON t.prior_debt_to_gdp >= sp.debt_min
+                   AND t.prior_debt_to_gdp <  sp.debt_max
 ORDER BY t.debt_to_gdp DESC

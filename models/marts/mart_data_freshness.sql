@@ -78,12 +78,33 @@ src AS (
            'Reference only. Not currently driving any panel.'
     FROM {{ ref('stg_lh_boe') }}
     UNION ALL
-    SELECT 'Stripe (Ampwell revenue)', 7, 'stripe',
+    -- IMF Historical Public Debt Database. Annual series, 1800-2024, 151 economies.
+    -- expected_lag is cadence + publication delay, not a guess: the series is annual
+    -- and the IMF publishes a year of data with roughly a year's delay, so anything
+    -- under two years old is on schedule. Registered 2026-09-03 -- it drives the
+    -- comparative debt-cycle panel and the brief's stage-change line, and until now
+    -- it appeared nowhere here, so a 2024 figure could be quoted with no warning at
+    -- all. That is precisely the confusion this model's header says it exists to kill.
+    SELECT 'IMF historical public debt', 7, 'longhistory',
+           cast(cast(max(year) as {{ dbt.type_string() }}) || '-12-31' as date), 730,
+           'Where the major powers sit on the debt cycle, on identical terms.'
+    FROM {{ ref('stg_lh_imf_debt') }}
+    UNION ALL
+    -- Maddison Project. Shipped as versioned datasets (2010, 2013, 2018, 2020, 2023)
+    -- roughly every three years rather than continuously, and the 2023 edition ends
+    -- in 2022. expected_lag is therefore one release interval plus its lag, so the
+    -- current edition reads as on-schedule until the next one is overdue.
+    SELECT 'Maddison Project (world output)', 8, 'longhistory',
+           cast(cast(max(year) as {{ dbt.type_string() }}) || '-12-31' as date), 1460,
+           'Share of world output. The relative-power half of the long arc.'
+    FROM {{ ref('stg_lh_maddison') }}
+    UNION ALL
+    SELECT 'Stripe (Ampwell revenue)', 9, 'stripe',
            (SELECT max(created_date) FROM {{ ref('stg_stripe_charges') }}), 30,
            'Revenue against the 2027-02-10 venture binary.'
     FROM (SELECT 1) x
     UNION ALL
-    SELECT 'SIGNAL leads', 8, 'bronze',
+    SELECT 'SIGNAL leads', 10, 'bronze',
            max(txn_date), 30, 'Outreach funnel.'
     FROM (SELECT cast(max(found_date) as date) AS txn_date FROM {{ ref('stg_leads') }}) l
 )

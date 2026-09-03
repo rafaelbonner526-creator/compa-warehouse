@@ -76,9 +76,17 @@ def plain_pct(x):
 def section_freshness(c):
     """Only shout about feeds that are SUPPOSED to move daily.
 
-    The research datasets (Bank of England millennium, JST, Shiller) are academic
-    files revised once a year at most. Listing them as "stale" every morning is
-    noise, and noise is what gets a brief skimmed. They get one quiet line.
+    The research datasets (Bank of England millennium, JST, Shiller, IMF debt,
+    Maddison) are academic files revised once a year at most. Listing them as
+    "stale" every morning is noise, and noise is what gets a brief skimmed. They
+    get one quiet line.
+
+    The daily/research split is taken from expected_lag_days, NOT from a list of
+    source names. The name list was a maintenance trap: it held four hardcoded
+    words, so the two long-history sources registered on 2026-09-03 (IMF debt,
+    Maddison) would have been reported in the DAILY bucket and shouted about every
+    morning. expected_lag_days already encodes each source's publication cadence,
+    which is the thing being asked about, and a new source now classifies itself.
     """
     r = rows(c, f"""
         SELECT source, data_age_days, expected_lag_days, status
@@ -88,9 +96,12 @@ def section_freshness(c):
     """)
     if not r:
         return []
-    research_words = ("millennium", "jst", "shiller", "macrohistory")
-    daily = [x for x in r if not any(w in (x["source"] or "").lower() for w in research_words)]
-    research = [x for x in r if any(w in (x["source"] or "").lower() for w in research_words)]
+    # A feed expected to move less often than once a year is a research dataset.
+    def is_research(x):
+        lag = x.get("expected_lag_days")
+        return lag is not None and lag >= 365
+    daily = [x for x in r if not is_research(x)]
+    research = [x for x in r if is_research(x)]
     out = []
     if daily:
         out.append("HEADS UP, SOME NUMBERS BELOW ARE OLD")
@@ -234,13 +245,118 @@ QUADRANT_PLAIN = {
 }
 
 
+# The comparative panels are ANNUAL data and must not be printed daily.
+#
+# mart_big_cycle_comparative is as-of each country's latest year (2024 for the
+# major powers) and mart_world_power ends at 2022. Pasting either into a daily
+# brief prints the same three lines every morning for a year, which is the exact
+# thing this file's house style says to drop. They live on the dashboard, where
+# standing context belongs, and reach the brief only as EVENTS.
+#
+# Two gates, both event-shaped rather than threshold-shaped, so there is no
+# invented number to tune:
+#   1. a major power changed stage year over year (stage_changed in the mart,
+#      scored through the one int_big_cycle_stages definition)
+#   2. the latest year is a new post-1950 extreme in share of world output
+#
+# Both are additionally gated on the source having loaded recently, which is what
+# stops a change from being re-announced for a year. That recency is per PIPELINE,
+# not per source: dlt records one load timestamp for the whole long-history
+# pipeline, so a Shiller refresh opens the window for these too. It only affects
+# WHEN the question is asked; the event gates decide whether anything is said.
+#
+# last_loaded can be NULL (the pipeline-name mismatch documented in
+# mart_data_freshness). NULL is treated as NOT fresh, so an unknown stays silent
+# rather than being reported as a change.
+FRESH_LOAD_DAYS = 30
+
+CYCLE_SOURCES = ("IMF historical public debt", "Maddison Project (world output)")
+
+
+def _sql_list(names):
+    """Quote a fixed tuple of literals for an IN clause. These are constants
+    defined in this file, never user input, but relying on Python repr to emit
+    valid SQL quoting is the kind of thing that breaks the day a name gains an
+    apostrophe, so it is explicit."""
+    return ", ".join("'" + n.replace("'", "''") + "'" for n in names)
+
+
+def _recent_loads(c):
+    """Which long-arc sources loaded inside the window. Empty on any doubt."""
+    r = rows(c, f"""
+        SELECT source, last_loaded,
+               DATE_DIFF(CURRENT_DATE(), DATE(last_loaded), DAY) AS days_since_load
+        FROM `{PROJECT}.gold.mart_data_freshness`
+        WHERE source IN ({_sql_list(CYCLE_SOURCES)})
+    """)
+    return {
+        x["source"]
+        for x in r
+        if x.get("days_since_load") is not None
+        and x["days_since_load"] <= FRESH_LOAD_DAYS
+    }
+
+
+def _long_arc_events(c, fresh):
+    """At most two lines, and only when something actually moved."""
+    out = []
+
+    if "IMF historical public debt" in fresh:
+        moved = rows(c, f"""
+            SELECT country, prior_stage_name, stage_name, as_of_year
+            FROM `{PROJECT}.gold.mart_big_cycle_comparative`
+            WHERE is_major_power AND stage_changed
+            ORDER BY debt_to_gdp DESC
+        """)
+        for m in moved:
+            out.append(
+                f"  {m['country']} moved from \"{m['prior_stage_name']}\" to "
+                f"\"{m['stage_name']}\" in {m['as_of_year']}."
+            )
+
+    if "Maddison Project (world output)" in fresh:
+        ext = rows(c, f"""
+            WITH scoped AS (
+                SELECT country, year, pct_of_world_gdp
+                FROM `{PROJECT}.gold.mart_world_power`
+                WHERE year >= 1950 AND country IN ('United States', 'China')
+            ),
+            bounds AS (
+                SELECT country, MIN(pct_of_world_gdp) AS lo,
+                       MAX(pct_of_world_gdp) AS hi, MAX(year) AS latest_year
+                FROM scoped GROUP BY country
+            )
+            SELECT s.country, s.year, s.pct_of_world_gdp,
+                   s.pct_of_world_gdp <= b.lo AS is_new_low,
+                   s.pct_of_world_gdp >= b.hi AS is_new_high
+            FROM scoped s
+            JOIN bounds b ON b.country = s.country AND b.latest_year = s.year
+        """)
+        for e in ext:
+            share = e.get("pct_of_world_gdp")
+            if share is None:
+                continue
+            if e.get("is_new_low"):
+                out.append(
+                    f"  {e['country']} share of world output is at its lowest since "
+                    f"1950, {share:.1f}% in {e['year']}."
+                )
+            elif e.get("is_new_high"):
+                out.append(
+                    f"  {e['country']} share of world output is at a post-1950 high, "
+                    f"{share:.1f}% in {e['year']}."
+                )
+    return out
+
+
 def section_market(c):
     reg = rows(c, f"SELECT * FROM `{PROJECT}.gold.mart_macro_regime`")
     cyc = rows(c, f"""
         SELECT stage_name, description, implication, debt_to_gdp
         FROM `{PROJECT}.gold.mart_big_cycle` WHERE is_current
     """)
-    if not reg and not cyc:
+    events = _long_arc_events(c, _recent_loads(c))
+    if not reg and not cyc and not events:
         return []
     out = ["THE BACKDROP", ""]
     if reg:
@@ -256,6 +372,9 @@ def section_market(c):
         out.append(f"  On the long arc, the US sits at \"{d['stage_name']}\": {d['description'].lower()}.")
         if d.get("implication"):
             out.append(f"  What that argues for: {d['implication'].lower()}.")
+    if events:
+        out.append("")
+        out.extend(events)
     return out
 
 
