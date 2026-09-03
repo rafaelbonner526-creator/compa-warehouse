@@ -26,3 +26,90 @@ models:
           - accepted_values:
               arguments:
                 values: ['call', 'email', 'linkedin']
+
+  # Added 2026-09-02. Only stg_leads and stg_touches had any tests, so the entire
+  # financial and macro side of the warehouse was unverified: the models that feed
+  # the money and market sections of the morning brief had no assertions at all.
+  #
+  # Kept to primary keys, nulls on columns that are relied on downstream, and
+  # enumerations that are genuinely closed. Deliberately NOT asserting ranges on
+  # amounts or balances, because a legitimate large transaction would trip it and a
+  # test that fires on real data gets deleted.
+
+  - name: stg_transactions
+    description: One row per Monarch transaction. Feeds budget, spend and safe-to-spend.
+    columns:
+      - name: transaction_id
+        tests: [unique, not_null]
+      - name: txn_date
+        tests: [not_null]
+      - name: amount
+        description: Signed. Negative is spending, positive is income.
+        tests: [not_null]
+      - name: account_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_accounts')
+                field: account_id
+
+  - name: stg_accounts
+    columns:
+      - name: account_id
+        tests: [unique, not_null]
+      - name: account
+        tests: [not_null]
+
+  - name: stg_categories
+    columns:
+      - name: category_id
+        tests: [unique, not_null]
+
+  - name: stg_networth
+    description: Daily net-worth snapshots. One row per date; a duplicate would double-count.
+    columns:
+      - name: snapshot_date
+        tests: [unique, not_null]
+      - name: net_worth
+        tests: [not_null]
+
+  # stg_holdings is described in models/marts/_marts.yml; dbt allows only one entry.
+
+  - name: stg_fred
+    description: FRED observations, long format.
+    columns:
+      - name: series
+        tests: [not_null]
+      - name: obs_date
+        tests: [not_null]
+
+  - name: stg_lh_imf_debt
+    description: >
+      IMF Historical Public Debt Database, ISO3 codes, 1800-2024. Values are already
+      percentages of GDP and must never be scaled again.
+    columns:
+      - name: entity
+        tests: [not_null]
+      - name: year
+        tests: [not_null]
+      - name: series
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['public_debt_to_gdp']
+
+  - name: stg_lh_maddison
+    description: Maddison Project 2023, plus a WORLD entity carrying the published world total.
+    columns:
+      - name: entity
+        tests: [not_null]
+      - name: year
+        tests: [not_null]
+      - name: series
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['gdp_per_capita', 'population', 'gdp_total']
