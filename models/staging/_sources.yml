@@ -24,6 +24,7 @@ sources:
       # ingestion/extract_plm_ops.py for why row-level export is excluded.
       - name: plm_db_health
       - name: plm_retrieval_runs
+      - name: plm_llm_cost
       - name: lh_imf_debt
       # Stripe (Ampwell revenue)
       - name: stripe_charges

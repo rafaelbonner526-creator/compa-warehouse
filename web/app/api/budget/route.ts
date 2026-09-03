@@ -21,6 +21,7 @@ export async function GET() {
       recurring,
       budget,
       meta,
+      componentSpend,
     ] = await Promise.all([
       run(`SELECT * FROM \`${P}.gold.mart_safe_to_spend\``),
       run(`SELECT snapshot_date, net_worth FROM \`${P}.gold.mart_networth\` ORDER BY snapshot_date`),
@@ -48,9 +49,13 @@ export async function GET() {
       run(`SELECT * FROM \`${P}.gold.mart_recurring_summary\``),
       run(`SELECT * FROM \`${P}.gold.mart_budget_vs_actual\``),
       run(`SELECT max(inserted_at) AS refreshed_at FROM \`${P}.bronze._dlt_loads\``),
+      // Appended LAST. Promise.all destructures POSITIONALLY, so a query
+      // inserted anywhere else silently reassigns every variable after it.
+      run(`SELECT * FROM \`${P}.gold.mart_component_spend\` ORDER BY spend_90d DESC, spend_usd DESC`),
     ]);
 
     return NextResponse.json({
+      componentSpend,
       sts: sts[0],
       networth,
       breakdown,

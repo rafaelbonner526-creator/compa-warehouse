@@ -386,6 +386,50 @@ def section_market(c):
     return out
 
 
+# --------------------------------------------------------------- tooling cost
+# What the tools cost, from money that actually left the account (Monarch), not
+# from vendor dashboards.
+#
+# THE CLAUDE LINE IS THE POINT. The card charges and what PLM actually caused
+# differ by roughly thirtyfold, and quoting the charge as "what PLM costs to run"
+# would poison any pricing or unit-economics conversation built on it.
+def section_spend(c):
+    rows_ = rows(c, f"""
+        SELECT component, serves, spend_usd, spend_90d, plm_attributed_90d,
+               no_charges_matched
+        FROM `{PROJECT}.gold.mart_component_spend`
+        ORDER BY spend_90d DESC, spend_usd DESC
+    """)
+    if not rows_:
+        return []
+    active = [r for r in rows_ if float(r["spend_90d"] or 0) > 0]
+    if not active:
+        return []
+
+    total90 = sum(float(r["spend_90d"] or 0) for r in active)
+    out = ["WHAT THE TOOLING COSTS", ""]
+    out.append(f"  {money(total90)} across the last 90 days, "
+               f"{len(active)} services with a charge.")
+
+    # Biggest three only. A brief is not a ledger.
+    for r in active[:3]:
+        out.append(f"    {r['component']}: {money(float(r['spend_90d']))}")
+
+    claude = next((r for r in rows_ if r["component"] == "Claude API"), None)
+    if claude and claude.get("plm_attributed_90d") is not None:
+        charged = float(claude["spend_90d"] or 0)
+        caused = float(claude["plm_attributed_90d"])
+        if charged > 0 and caused >= 0 and charged > caused * 5:
+            out.append(f"    Of that Claude spend, only {money(caused)} was PLM. "
+                       f"The rest is your own usage, not the product.")
+
+    missing = [r["component"] for r in rows_ if r.get("no_charges_matched")]
+    if missing:
+        out.append(f"    No charge found for {', '.join(missing)}. Either free at "
+                   f"this tier or billed under a name we do not recognise.")
+    return out
+
+
 # ------------------------------------------------------------------- plm ops
 # Operational health only. No patient data reaches this warehouse: see
 # ingestion/extract_plm_ops.py for why row-level export is excluded even after
@@ -411,12 +455,19 @@ def section_plm(c):
         size = db.get("db_size_mb")
         head = f"  The database is {float(size):.0f} MB across {db['user_tables']} tables."
         subs = []
-        # Threshold, not vibes: an index that has never been scanned earns nothing
-        # and costs write throughput on every insert. Worth saying once it is most
-        # of them.
-        if unused and total and float(pct) >= 50:
-            subs.append(f"    {unused} of {total} indexes ({float(pct):.0f}%) have never "
-                        f"been used. Each one slows every write and returns nothing.")
+        # DROPPABLE, not merely unused. Of the 119 never-scanned indexes here, 62
+        # enforce UNIQUE constraints and 34 are primary keys: they read as unused
+        # forever and dropping them corrupts the table. Saying "119 (60%)" turned
+        # a 600 kB tidy-up into what sounded like a serious problem.
+        #
+        # Only worth a line once it is actually worth doing. Under a megabyte on a
+        # 142 MB database is housekeeping, and housekeeping does not belong in a
+        # brief that is trying to be short.
+        drop_n = db.get("droppable_indexes")
+        drop_kb = db.get("droppable_index_kb")
+        if drop_n and int(drop_n) > 0 and drop_kb and float(drop_kb) >= 5000:
+            subs.append(f"    {int(drop_n)} unused indexes could go, freeing "
+                        f"{float(drop_kb)/1000:.0f} MB.")
         dead = db.get("dead_tuple_pct")
         if dead is not None and float(dead) >= 20:
             subs.append(f"    {float(dead):.0f}% dead rows, past the point autovacuum "
@@ -551,6 +602,7 @@ SECTIONS = {
     "market": section_market,
     "standing": section_standing,
     "plm": section_plm,
+    "spend": section_spend,
     "outreach": section_outreach,
 }
 

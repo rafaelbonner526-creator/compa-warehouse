@@ -36,6 +36,7 @@ type Data = {
   recurring: Row | null;
   budget: Row[];
   refreshed_at: string | null;
+  componentSpend: Row[];
 };
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
@@ -66,6 +67,75 @@ const tip = {
 const Dot = ({ c }: { c: string }) => (
   <span className="inline-block h-2 w-2 rounded-full" style={{ background: c }} />
 );
+
+
+// What the tooling costs, from real card charges rather than vendor dashboards.
+// The brief gets three lines; the full per-component table lives here.
+//
+// CHARGED and CAUSED are separate columns for Claude on purpose. The card total
+// covers Claude Code and personal use; only the Langfuse figure is PLM.
+// Collapsing them overstates the cost of running the product roughly thirtyfold
+// and would quietly corrupt any pricing built on it.
+function ComponentSpend({ rows }: { rows: Row[] }) {
+  if (!rows?.length) return null;
+  const num = (v: unknown) => (v == null ? null : Number(v));
+  const total90 = rows.reduce((a, r) => a + Number(r.spend_90d ?? 0), 0);
+  return (
+    <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-sm font-semibold text-zinc-300">What the tooling costs</h2>
+        <span className="text-lg font-semibold">
+          ${Math.round(total90).toLocaleString("en-US")}
+          <span className="ml-1 text-xs font-normal text-zinc-500">last 90d</span>
+        </span>
+      </div>
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-zinc-500">
+              <th className="py-1 text-left font-normal">Component</th>
+              <th className="py-1 text-left font-normal">Serves</th>
+              <th className="py-1 text-right font-normal">90 days</th>
+              <th className="py-1 text-right font-normal">All time</th>
+              <th className="py-1 text-right font-normal">Caused by PLM</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => {
+              const att = num(r.plm_attributed_90d);
+              const none = Boolean(r.no_charges_matched);
+              return (
+                <tr key={i} className="border-t border-zinc-800/60">
+                  <td className="py-1 text-zinc-300">
+                    {String(r.component)}
+                    {none && (
+                      <span className="ml-2 text-[10px] text-amber-400">no charge matched</span>
+                    )}
+                  </td>
+                  <td className="py-1 text-zinc-500">{String(r.serves)}</td>
+                  <td className="py-1 text-right text-zinc-300">
+                    ${Number(r.spend_90d ?? 0).toFixed(2)}
+                  </td>
+                  <td className="py-1 text-right text-zinc-500">
+                    ${Number(r.spend_usd ?? 0).toFixed(2)}
+                  </td>
+                  <td className="py-1 text-right" style={{ color: att != null ? "#34d399" : undefined }}>
+                    {att != null ? `$${att.toFixed(2)}` : "-"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-2 text-[11px] leading-snug text-zinc-500">
+        Charges come from your bank records, not vendor dashboards. &quot;Caused by
+        PLM&quot; is measured separately and exists only for Claude, whose card total
+        also covers your own usage.
+      </p>
+    </div>
+  );
+}
 
 export default function Home() {
   const [d, setD] = useState<Data | null>(null);
@@ -145,6 +215,7 @@ export default function Home() {
 
   return (
     <main className="mx-auto max-w-5xl px-5 pb-10 pt-4">
+      <ComponentSpend rows={d.componentSpend} />
       <div className="flex items-baseline justify-between">
         <h1 className="text-2xl font-semibold">Budget</h1>
         {refreshed && <span className="text-xs text-zinc-500">Last refreshed {refreshed} ET</span>}

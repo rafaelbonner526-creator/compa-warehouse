@@ -46,8 +46,12 @@ SELECT
     lh.connections,
     lh.total_indexes,
     lh.unused_indexes,
-    -- The headline maintenance signal. Every never-scanned index still costs
-    -- write throughput and storage on each insert and update.
+    lh.droppable_indexes,
+    ROUND(lh.droppable_index_bytes / 1000.0, 0) AS droppable_index_kb,
+    -- unused_index_pct is kept for continuity but is NOT the actionable number:
+    -- 62 of the 119 never-scanned indexes here enforce UNIQUE constraints and 34
+    -- are primary keys. Those read as unused forever and dropping them corrupts
+    -- the table. Use droppable_indexes.
     ROUND(100.0 * lh.unused_indexes / NULLIF(lh.total_indexes, 0), 0)
         AS unused_index_pct,
     -- Autovacuum conventionally triggers around 20% dead tuples, so this is the
@@ -72,6 +76,8 @@ SELECT
     CAST(NULL AS {{ dbt.type_int() }})     AS connections,
     CAST(NULL AS {{ dbt.type_int() }})     AS total_indexes,
     CAST(NULL AS {{ dbt.type_int() }})     AS unused_indexes,
+    CAST(NULL AS {{ dbt.type_int() }})     AS droppable_indexes,
+    CAST(NULL AS {{ dbt.type_numeric() }}) AS droppable_index_kb,
     CAST(NULL AS {{ dbt.type_numeric() }}) AS unused_index_pct,
     CAST(NULL AS {{ dbt.type_numeric() }}) AS dead_tuple_pct,
     CAST(NULL AS {{ dbt.type_numeric() }}) AS longest_query_seconds,

@@ -1,0 +1,12 @@
+match_pattern,component,serves,cost_type,note
+anthropic,Claude API,mixed,metered,Card total covers Claude Code and personal use as well as PLM. Langfuse is the only source that isolates PLM's share
+openai,OpenAI API,plm,metered,Embeddings for retrieval
+railway,Railway,plm,subscription,Hosts the orchestrator
+supabase,Supabase,plm,subscription,Database and edge functions
+resend,Resend,plm,subscription,Transactional email to members
+pdfmunk,pdfmunk,plm,metered,Report PDF rendering
+cloudflare,Cloudflare,shared,subscription,DNS and domains
+instantly,Instantly,outreach,subscription,Cold email sending. Outreach not PLM
+apify,Apify,outreach,subscription,Lead scraping. Outreach not PLM
+zerobounce,ZeroBounce,outreach,metered,Email validation. Outreach not PLM
+upwork,Upwork,marketplace,metered,Connects and fees

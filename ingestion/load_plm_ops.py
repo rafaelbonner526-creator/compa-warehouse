@@ -42,6 +42,7 @@ def load() -> None:
     for name, table, disposition in (
         ("db_health", "plm_db_health", "append"),
         ("retrieval_runs", "plm_retrieval_runs", "replace"),
+        ("llm_cost", "plm_llm_cost", "replace"),
     ):
         f = LAND / f"{name}.json"
         if not f.exists():

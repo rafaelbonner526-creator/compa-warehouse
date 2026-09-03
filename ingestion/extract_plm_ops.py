@@ -19,6 +19,7 @@ export the aggregate, never the rows.
 Run:  uv run ingestion/extract_plm_ops.py
 """
 
+import base64
 import csv
 import json
 import os
@@ -80,6 +81,38 @@ def read_retrieval_runs():
     return out
 
 
+def fetch_llm_cost(env):
+    """PLM's own LLM spend, per day, from Langfuse.
+
+    WHY THIS AND THE CARD CHARGES ARE BOTH NEEDED. Monarch shows $626.92 of
+    Anthropic charges since March, about $104 a month. Langfuse shows PLM's
+    instrumented calls costing about $3.60 a month. Both are true and they answer
+    different questions: the card says what left the account, Langfuse says what
+    PLM caused. Roughly 96% of that Anthropic bill is something other than PLM,
+    almost certainly Claude Code. Reporting the card total as "what PLM costs to
+    run" would overstate it nearly thirtyfold.
+    """
+    host = env.get("LANGFUSE_HOST", "").rstrip("/")
+    pk, sk = env.get("LANGFUSE_PUBLIC_KEY"), env.get("LANGFUSE_SECRET_KEY")
+    if not (host and pk and sk):
+        print("  llm_cost: Langfuse credentials absent, skipped", file=sys.stderr)
+        return []
+    auth = base64.b64encode(f"{pk}:{sk}".encode()).decode()
+    rq = urllib.request.Request(host + "/api/public/metrics/daily?limit=100",
+                                headers={"Authorization": f"Basic {auth}"})
+    with urllib.request.urlopen(rq, timeout=40) as r:
+        payload = json.loads(r.read())
+    out = []
+    for row in payload.get("data") or []:
+        out.append({
+            "cost_date": row.get("date"),
+            "total_cost_usd": row.get("totalCost"),
+            "traces": row.get("countTraces"),
+            "observations": row.get("countObservations"),
+        })
+    return out
+
+
 def main():
     LAND.mkdir(parents=True, exist_ok=True)
     env = _plm_env()
@@ -102,6 +135,18 @@ def main():
     runs = read_retrieval_runs()
     (LAND / "retrieval_runs.json").write_text(json.dumps(runs))
     print(f"  retrieval_runs -> {len(runs)} rows")
+
+    try:
+        cost = fetch_llm_cost(env)
+        (LAND / "llm_cost.json").write_text(json.dumps(cost))
+        total = sum(float(c["total_cost_usd"] or 0) for c in cost)
+        print(f"  llm_cost -> {len(cost)} days, ${total:.2f} total")
+    except Exception as e:  # noqa: BLE001
+        # Not fatal: db_health and retrieval are the load-bearing pieces. But
+        # write an empty file rather than leaving a stale one in place, or a
+        # failed pull would silently republish last week's cost as today's.
+        print(f"  llm_cost: FAILED {type(e).__name__}: {e}", file=sys.stderr)
+        (LAND / "llm_cost.json").write_text("[]")
     return 0
 
 
