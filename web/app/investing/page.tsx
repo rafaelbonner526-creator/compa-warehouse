@@ -22,7 +22,7 @@ type Data = {
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 ${className}`}>{children}</div>
+    <div className={`rounded-2xl border bd-s3 bg-s1 p-5 ${className}`}>{children}</div>
   );
 }
 
@@ -30,11 +30,11 @@ function Signal({ label, value, target, ok }: { label: string; value: string; ta
   return (
     <Card>
       <div className="flex items-center justify-between">
-        <span className="text-sm text-zinc-400">{label}</span>
+        <span className="text-sm tx-2">{label}</span>
         <span className="inline-block h-2 w-2 rounded-full" style={{ background: ok ? GREEN : RED }} />
       </div>
       <div className="mt-1 text-2xl font-semibold" style={{ color: ok ? "#fafafa" : RED }}>{value}</div>
-      <div className="mt-1 text-xs text-zinc-500">target {target}</div>
+      <div className="mt-1 text-xs tx-m">target {target}</div>
     </Card>
   );
 }
@@ -67,8 +67,8 @@ function Standing({ rows }: { rows: Row[] }) {
   };
   return (
     <Card>
-      <h2 className="text-sm font-semibold text-zinc-300">Where you stand</h2>
-      <p className="mt-1 text-xs text-zinc-500">
+      <h2 className="text-sm font-semibold tx-2">Where you stand</h2>
+      <p className="mt-1 text-xs tx-m">
         The only targets here that you did not set yourself.
       </p>
       {[...groups.entries()].map(([key, rs]) => {
@@ -77,13 +77,13 @@ function Standing({ rows }: { rows: Row[] }) {
         const chgPct = rs[0].change_90d_pct == null ? null : Number(rs[0].change_90d_pct);
         const weak = String(rs[0].comparability) !== "direct";
         return (
-          <div key={key} className="mt-4 border-t border-zinc-800 pt-3 first:border-0 first:pt-0">
+          <div key={key} className="mt-4 border-t bd-s3 pt-3 first:border-0 first:pt-0">
             <div className="flex items-baseline justify-between">
-              <span className="text-xs uppercase tracking-wide text-zinc-400">
+              <span className="text-xs uppercase tracking-wide tx-2">
                 {key.replace(/_/g, " ")}
               </span>
               {cur != null && (
-                <span className="text-lg font-semibold text-zinc-100">
+                <span className="text-lg font-semibold tx-1">
                   {fmt(cur, "$")}
                   {chg != null && (
                     <span className="ml-2 text-xs font-normal" style={{ color: chg >= 0 ? GREEN : RED }}>
@@ -101,9 +101,9 @@ function Standing({ rows }: { rows: Row[] }) {
                   const gap = r.gap_to_tier == null ? null : Number(r.gap_to_tier);
                   const past = String(r.standing) === "at or above";
                   return (
-                    <tr key={i} className="border-t border-zinc-800/60">
-                      <td className="py-1 text-zinc-400">{TIER[String(r.tier)] ?? String(r.tier)}</td>
-                      <td className="py-1 text-right text-zinc-300">{fmt(base, "$")}</td>
+                    <tr key={i} className="border-t bd-s3">
+                      <td className="py-1 tx-2">{TIER[String(r.tier)] ?? String(r.tier)}</td>
+                      <td className="py-1 text-right tx-2">{fmt(base, "$")}</td>
                       <td className="py-1 text-right" style={{ color: past ? GREEN : "#a1a1aa" }}>
                         {past ? "reached" : gap != null ? `${fmt(Math.abs(gap), "$")} to go` : "-"}
                       </td>
@@ -112,7 +112,7 @@ function Standing({ rows }: { rows: Row[] }) {
                 })}
               </tbody>
             </table>
-            <p className="mt-2 text-[11px] leading-snug text-zinc-500">
+            <p className="mt-2 text-[11px] leading-snug tx-m">
               {String(rs[0].population)} &middot; {String(rs[0].source_name)} ({String(rs[0].as_of_year)})
               {weak && (
                 <span style={{ color: AMBER }}> &middot; {String(rs[0].comparability)}: {String(rs[0].caution)}</span>
@@ -139,8 +139,8 @@ export default function Portfolio() {
       .catch((e) => setErr(String(e)));
   }, []);
 
-  if (err) return <main className="p-8 text-red-400">Error: {err}</main>;
-  if (!d) return <main className="p-8 text-zinc-500">Loading…</main>;
+  if (err) return <main className="p-8 tx-crit">Error: {err}</main>;
+  if (!d) return <main className="p-8 tx-m">Loading…</main>;
 
   const s = d.signals;
   // Band checks must use the ACTIVE-account split, not the all-account blend.
@@ -211,27 +211,27 @@ export default function Portfolio() {
     <main className="mx-auto max-w-5xl px-5 pb-10 pt-4">
       <div className="flex items-baseline justify-between">
         <h1 className="text-2xl font-semibold">Portfolio</h1>
-        {refreshed && <span className="text-xs text-zinc-500">Last refreshed {refreshed} ET</span>}
+        {refreshed && <span className="text-xs tx-m">Last refreshed {refreshed} ET</span>}
       </div>
 
       <Standing rows={d.baselines} />
-      <p className="mt-1 text-sm text-zinc-500">Your holdings vs your ALTO framework. Signals, not advice. Nothing executes trades.</p>
+      <p className="mt-1 text-sm tx-m">Your holdings vs your ALTO framework. Signals, not advice. Nothing executes trades.</p>
 
       {/* next best actions */}
       <Card className="mt-6">
         <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
-          <span className="text-sm font-medium text-zinc-300">Do this next</span>
-          <span className="text-xs text-zinc-500">
+          <span className="text-sm font-medium tx-2">Do this next</span>
+          <span className="text-xs tx-m">
             {todo.length} to act on · {passing.length} rules passing
           </span>
         </div>
-        <p className="mb-3 text-xs text-zinc-500">
+        <p className="mb-3 text-xs tx-m">
           Every rule below comes from your written thesis, checked against live holdings. Ranked by
           urgency: act now, then the quarterly rebalance, then watch.
         </p>
 
         {todo.length === 0 && (
-          <p className="text-sm text-emerald-400">
+          <p className="text-sm tx-good">
             Every framework rule passes. Keep contributing, change nothing.
           </p>
         )}
@@ -245,21 +245,21 @@ export default function Portfolio() {
               />
               <div className="min-w-0">
                 <div className="flex flex-wrap items-baseline gap-2">
-                  <span className="text-sm font-medium text-zinc-200">{a.title}</span>
-                  <span className="text-xs tabular-nums text-zinc-500">
+                  <span className="text-sm font-medium tx-1">{a.title}</span>
+                  <span className="text-xs tabular-nums tx-m">
                     now {fmt(a.current, a.unit)}
                     {" · target "}
                     {fmt(a.target, a.unit)}
                   </span>
-                  <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] uppercase tracking-wide text-zinc-400">
+                  <span className="rounded-full bg-s2 px-2 py-0.5 text-[10px] uppercase tracking-wide tx-2">
                     {a.severity === 1 ? "now" : a.severity === 2 ? "rebalance" : "watch"}
                   </span>
                 </div>
-                <p className="mt-0.5 text-xs leading-relaxed text-zinc-500">{a.detail}</p>
+                <p className="mt-0.5 text-xs leading-relaxed tx-m">{a.detail}</p>
                 {a.title === "Consolidate standard positions" && smallestStd && (
-                  <p className="mt-0.5 text-xs text-zinc-500">
+                  <p className="mt-0.5 text-xs tx-m">
                     Smallest standard position is{" "}
-                    <strong className="text-zinc-400">{smallestStd.ticker}</strong> at {smallestStd.pct}%.
+                    <strong className="tx-2">{smallestStd.ticker}</strong> at {smallestStd.pct}%.
                   </p>
                 )}
               </div>
@@ -268,13 +268,13 @@ export default function Portfolio() {
         </ul>
 
         {passing.length > 0 && (
-          <details className="mt-4 border-t border-zinc-800 pt-3">
-            <summary className="cursor-pointer text-xs text-zinc-500">
+          <details className="mt-4 border-t bd-s3 pt-3">
+            <summary className="cursor-pointer text-xs tx-m">
               {passing.length} rules currently passing
             </summary>
             <ul className="mt-2 space-y-1">
               {passing.map((a, i) => (
-                <li key={i} className="flex items-baseline justify-between gap-3 text-xs text-zinc-500">
+                <li key={i} className="flex items-baseline justify-between gap-3 text-xs tx-m">
                   <span>✓ {a.title}</span>
                   <span className="tabular-nums">{fmt(a.current, a.unit)}</span>
                 </li>
@@ -283,16 +283,16 @@ export default function Portfolio() {
           </details>
         )}
 
-        <p className="mt-4 border-t border-zinc-800 pt-3 text-sm leading-relaxed text-zinc-400">{marketNote}</p>
+        <p className="mt-4 border-t bd-s3 pt-3 text-sm leading-relaxed tx-2">{marketNote}</p>
       </Card>
 
       {/* band by scope */}
       <Card className="mt-3">
-        <div className="mb-2 text-sm font-medium text-zinc-300">US / International by account</div>
+        <div className="mb-2 text-sm font-medium tx-2">US / International by account</div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs uppercase tracking-wide text-zinc-500">
+              <tr className="text-left text-xs uppercase tracking-wide tx-m">
                 <th className="pb-2 pr-4 font-medium">Scope</th>
                 <th className="pb-2 pr-4 text-right font-medium">Equity</th>
                 <th className="pb-2 pr-4 text-right font-medium">US</th>
@@ -300,20 +300,20 @@ export default function Portfolio() {
                 <th className="pb-2 font-medium">vs band</th>
               </tr>
             </thead>
-            <tbody className="text-zinc-300">
+            <tbody className="tx-2">
               {d.bands.map((b) => (
-                <tr key={String(b.scope)} className="border-t border-zinc-800">
+                <tr key={String(b.scope)} className="border-t bd-s3">
                   <td className="py-2 pr-4 font-medium">{String(b.scope)}</td>
-                  <td className="py-2 pr-4 text-right tabular-nums text-zinc-400">
+                  <td className="py-2 pr-4 text-right tabular-nums tx-2">
                     ${Number(b.equity_value).toLocaleString()}
                   </td>
                   <td className="py-2 pr-4 text-right tabular-nums">{Number(b.us_pct)}%</td>
-                  <td className="py-2 pr-4 text-right tabular-nums text-zinc-400">{Number(b.intl_pct)}%</td>
+                  <td className="py-2 pr-4 text-right tabular-nums tx-2">{Number(b.intl_pct)}%</td>
                   <td className="py-2">
                     {b.in_alto_band ? (
-                      <span className="text-emerald-400">in band</span>
+                      <span className="tx-good">in band</span>
                     ) : (
-                      <span className="text-amber-400">
+                      <span className="tx-warn">
                         {Number(b.pct_over_ceiling) > 0
                           ? `${Number(b.pct_over_ceiling)}pp over`
                           : "below floor"}
@@ -325,7 +325,7 @@ export default function Portfolio() {
             </tbody>
           </table>
         </div>
-        <p className="mt-2 text-xs text-zinc-500">
+        <p className="mt-2 text-xs tx-m">
           The {bandMin}-{bandMax}% band applies to the Active account. Combined includes Acorns and the
           Roth, so it reads differently and is not what the rule is judged on.
         </p>
@@ -345,20 +345,20 @@ export default function Portfolio() {
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <div className="mb-2 flex justify-between text-sm">
-            <span className="text-zinc-400">Geographic split (equity)</span>
-            <span className="text-zinc-300">US {usAlloc}% · Intl {100 - Number(usAlloc)}%</span>
+            <span className="tx-2">Geographic split (equity)</span>
+            <span className="tx-2">US {usAlloc}% · Intl {100 - Number(usAlloc)}%</span>
           </div>
-          <div className="flex h-3 w-full overflow-hidden rounded-full bg-zinc-800">
+          <div className="flex h-3 w-full overflow-hidden rounded-full bg-s2">
             <div style={{ width: `${usAlloc}%`, background: GREEN }} />
             <div style={{ width: `${100 - Number(usAlloc)}%`, background: ACCENT }} />
           </div>
-          <div className="mt-2 flex gap-4 text-xs text-zinc-500">
+          <div className="mt-2 flex gap-4 text-xs tx-m">
             <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full" style={{ background: GREEN }} /> US</span>
             <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full" style={{ background: ACCENT }} /> International</span>
           </div>
         </Card>
         <Card>
-          <div className="mb-3 text-sm font-medium text-zinc-300">Active by sleeve</div>
+          <div className="mb-3 text-sm font-medium tx-2">Active by sleeve</div>
           <ResponsiveContainer width="100%" height={160}>
             <BarChart data={sleeves} layout="vertical" margin={{ left: 30, right: 24 }}>
               <XAxis type="number" hide />
@@ -372,10 +372,10 @@ export default function Portfolio() {
 
       {/* positions */}
       <Card className="mt-3">
-        <div className="mb-3 text-sm font-medium text-zinc-300">Active positions vs sleeve caps</div>
+        <div className="mb-3 text-sm font-medium tx-2">Active positions vs sleeve caps</div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="text-left text-xs text-zinc-500">
+            <thead className="text-left text-xs tx-m">
               <tr>
                 <th className="py-1 pr-4">Ticker</th>
                 <th className="py-1 pr-4">Sleeve</th>
@@ -384,14 +384,14 @@ export default function Portfolio() {
                 <th className="py-1">Cap</th>
               </tr>
             </thead>
-            <tbody className="text-zinc-300">
+            <tbody className="tx-2">
               {positions.map((p, i) => (
-                <tr key={i} className="border-t border-zinc-800">
+                <tr key={i} className="border-t bd-s3">
                   <td className="py-1.5 pr-4">{p.ticker}</td>
-                  <td className="py-1.5 pr-4 text-zinc-400">{p.sleeve}</td>
+                  <td className="py-1.5 pr-4 tx-2">{p.sleeve}</td>
                   <td className="py-1.5 pr-4">${p.value.toLocaleString()}</td>
                   <td className="py-1.5 pr-4" style={{ color: p.over ? RED : undefined }}>{p.pct}%</td>
-                  <td className="py-1.5">{p.cap ? <span style={{ color: p.over ? RED : "#71717a" }}>{p.over ? "over" : "≤"} {p.cap}%</span> : <span className="text-zinc-600">—</span>}</td>
+                  <td className="py-1.5">{p.cap ? <span style={{ color: p.over ? RED : "#71717a" }}>{p.over ? "over" : "≤"} {p.cap}%</span> : <span className="tx-m">—</span>}</td>
                 </tr>
               ))}
             </tbody>

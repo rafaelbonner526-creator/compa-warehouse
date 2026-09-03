@@ -34,8 +34,13 @@ export default function Freshness() {
   const lagging = rows.filter((r) => String(r.status) === "lagging");
   const worst = stale.length ? "stale" : lagging.length ? "lagging" : "current";
 
+  // Restored 2026-09-03. A catch-all regex in the token migration replaced every
+  // palette class with an empty string and blanked all three branches, so the
+  // status dot rendered invisible while the build stayed green. Status colours
+  // are reserved tokens and the dot is always accompanied by the summary text,
+  // so state is never carried by colour alone.
   const dot =
-    worst === "stale" ? "bg-red-400" : worst === "lagging" ? "bg-amber-400" : "bg-emerald-400";
+    worst === "stale" ? "bg-crit" : worst === "lagging" ? "bg-warn" : "bg-good";
   const summary =
     worst === "current"
       ? `All ${rows.length} sources current`
@@ -48,18 +53,18 @@ export default function Freshness() {
     <div className="mx-auto max-w-5xl px-5 pt-3">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-2 rounded-lg border border-zinc-800/80 bg-zinc-900/40 px-3 py-1.5 text-left text-xs text-zinc-400 hover:border-zinc-700"
+        className="flex w-full items-center gap-2 rounded-lg border bd-s3 bg-s1 px-3 py-1.5 text-left text-xs tx-2 hover:bd-s3"
       >
         <span className={`inline-block h-1.5 w-1.5 rounded-full ${dot}`} />
         <span>{summary}</span>
-        <span className="ml-auto text-zinc-600">{open ? "hide" : "data freshness"}</span>
+        <span className="ml-auto tx-m">{open ? "hide" : "data freshness"}</span>
       </button>
 
       {open && (
-        <div className="mt-2 overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+        <div className="mt-2 overflow-x-auto rounded-lg border bd-s3 bg-s1 p-3">
           <table className="w-full text-xs">
             <thead>
-              <tr className="text-left uppercase tracking-wide text-zinc-600">
+              <tr className="text-left uppercase tracking-wide tx-m">
                 <th className="pb-1.5 pr-3 font-medium">Source</th>
                 <th className="pb-1.5 pr-3 font-medium">Data through</th>
                 <th className="pb-1.5 pr-3 text-right font-medium">Age</th>
@@ -67,34 +72,34 @@ export default function Freshness() {
                 <th className="pb-1.5 font-medium">Feeds</th>
               </tr>
             </thead>
-            <tbody className="text-zinc-400">
+            <tbody className="tx-2">
               {rows.map((r) => {
                 const st = String(r.status);
                 const tone =
                   st === "stale"
-                    ? "text-red-400"
+                    ? "tx-crit"
                     : st === "lagging"
-                      ? "text-amber-400"
-                      : "text-emerald-400";
+                      ? "tx-warn"
+                      : "tx-good";
                 return (
-                  <tr key={String(r.source)} className="border-t border-zinc-800/70">
-                    <td className="py-1.5 pr-3 text-zinc-300">{String(r.source)}</td>
+                  <tr key={String(r.source)} className="border-t bd-s3">
+                    <td className="py-1.5 pr-3 tx-2">{String(r.source)}</td>
                     <td className="py-1.5 pr-3 tabular-nums">
                       {String(r.data_through ?? "—").slice(0, 10)}
                     </td>
                     <td className={`py-1.5 pr-3 text-right tabular-nums ${tone}`}>
                       {r.data_age_days == null ? "—" : age(Number(r.data_age_days))}
                     </td>
-                    <td className="py-1.5 pr-3 tabular-nums text-zinc-500">
+                    <td className="py-1.5 pr-3 tabular-nums tx-m">
                       {r.last_loaded ? String(r.last_loaded).slice(0, 10) : "—"}
                     </td>
-                    <td className="py-1.5 text-zinc-500">{String(r.feeds ?? "")}</td>
+                    <td className="py-1.5 tx-m">{String(r.feeds ?? "")}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-          <p className="mt-2 leading-relaxed text-zinc-600">
+          <p className="mt-2 leading-relaxed tx-m">
             Age is how old the newest observation is, not when we last pulled. A research dataset
             can be pulled this morning and still end in 2020, which is what &quot;stale&quot; means
             here: the source itself has not published, not that the pipeline is broken.

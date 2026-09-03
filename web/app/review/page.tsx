@@ -1,14 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  Card, Empty, Grid, Meter, Page, Row, Stat, Table, Td, Tr, num, usd,
+} from "@/components/ui";
 
-type Row = Record<string, string | number | null>;
 type Data = { digest: Row[]; history: Row[]; plmOps: Row[]; plmPnl: Row[] };
 
+/* Severity wears a RESERVED status colour and always ships with a label, so
+   state is never carried by colour alone. */
 const SEVERITY = {
-  1: { label: "Act now", tone: "text-red-400", dot: "bg-red-400" },
-  2: { label: "At the review", tone: "text-amber-400", dot: "bg-amber-400" },
-  3: { label: "Context", tone: "text-zinc-400", dot: "bg-zinc-500" },
+  1: { label: "Act now", color: "var(--status-critical)" },
+  2: { label: "At the review", color: "var(--status-warning)" },
+  3: { label: "Context", color: "var(--text-muted)" },
 } as const;
 
 
@@ -23,54 +27,31 @@ function PlmOps({ rows }: { rows: Row[] }) {
   if (!rows?.length) return null;
   const db = rows.find((r) => r.area === "database");
   const rt = rows.find((r) => r.area === "retrieval");
-  const n = (v: unknown) => (v == null ? null : Number(v));
-  const unusedPct = n(db?.unused_index_pct);
-  const stable = n(rt?.runs_at_current_value);
+  const unusedPct = db ? num(db.unused_index_pct) : 0;
+  const stable = rt ? num(rt.runs_at_current_value) : 0;
   return (
-    <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
-      <h2 className="text-sm font-semibold text-zinc-300">PLM system</h2>
-      <p className="mt-1 text-xs text-zinc-500">
-        Operational only. No patient data reaches this warehouse.
-      </p>
-      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <Card title="PLM system" hint="Operational only. No patient data reaches this warehouse.">
+      <Grid cols={4}>
         {db && (
           <>
-            <div>
-              <div className="text-xs text-zinc-500">Database</div>
-              <div className="text-lg font-semibold">{n(db.db_size_mb)?.toFixed(0)} MB</div>
-              <div className="text-[11px] text-zinc-500">{String(db.user_tables)} tables</div>
-            </div>
-            <div>
-              <div className="text-xs text-zinc-500">Unused indexes</div>
-              <div className="text-lg font-semibold"
-                   style={{ color: unusedPct != null && unusedPct >= 50 ? "#fbbf24" : undefined }}>
-                {String(db.unused_indexes)}/{String(db.total_indexes)}
-              </div>
-              <div className="text-[11px] text-zinc-500">
-                {unusedPct?.toFixed(0)}% never scanned
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-zinc-500">Dead rows</div>
-              <div className="text-lg font-semibold">{n(db.dead_tuple_pct)?.toFixed(0)}%</div>
-              <div className="text-[11px] text-zinc-500">autovacuum acts near 20%</div>
-            </div>
+            <Stat label="Database" value={`${num(db.db_size_mb).toFixed(0)} MB`} hint={`${db.user_tables} tables`} />
+            <Stat
+              label="Droppable indexes" value={`${db.droppable_indexes ?? 0}`}
+              hint={`${num(db.droppable_index_kb).toFixed(0)} kB · ${db.unused_indexes} never scanned, most enforce constraints`}
+              status={unusedPct >= 50 ? "warning" : undefined}
+            />
+            <Stat label="Dead rows" value={`${num(db.dead_tuple_pct).toFixed(0)}%`} hint="autovacuum acts near 20%" />
           </>
         )}
         {rt && (
-          <div>
-            <div className="text-xs text-zinc-500">Search quality</div>
-            <div className="text-lg font-semibold">
-              {stable && stable >= 2 ? "unchanged" : "moved"}
-            </div>
-            <div className="text-[11px] text-zinc-500">
-              {stable ? `${stable} checks agree` : "check it"} &middot;{" "}
-              {n(rt.mean_latency_ms)?.toFixed(0)}ms
-            </div>
-          </div>
+          <Stat
+            label="Search quality" value={stable >= 2 ? "unchanged" : "moved"}
+            status={stable >= 2 ? "good" : "warning"}
+            hint={`${stable} checks agree · ${num(rt.mean_latency_ms).toFixed(0)}ms typical`}
+          />
         )}
-      </div>
-    </div>
+      </Grid>
+    </Card>
   );
 }
 
@@ -83,46 +64,28 @@ function PlmOps({ rows }: { rows: Row[] }) {
 function PlmPnl({ rows }: { rows: Row[] }) {
   if (!rows?.length) return null;
   const d = rows[0];
-  const n = (v: unknown) => (v == null ? 0 : Number(v));
-  const rev = n(d.revenue_all_time);
-  const cost = n(d.cost_all_time);
-  const net = n(d.net_all_time);
-  const usd = (v: number) => `$${Math.round(v).toLocaleString("en-US")}`;
+  const rev = num(d.revenue_all_time);
+  const cost = num(d.cost_all_time);
+  const net = num(d.net_all_time);
   const costPct = rev > 0 ? Math.min(100, (cost / rev) * 100) : 0;
   return (
-    <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
-      <h2 className="text-sm font-semibold text-zinc-300">PLM, money in and out</h2>
-      <div className="mt-3 grid grid-cols-3 gap-3">
-        <div>
-          <div className="text-xs text-zinc-500">Earned</div>
-          <div className="text-xl font-semibold text-zinc-100">{usd(rev)}</div>
-          <div className="text-[11px] text-zinc-500">
-            {usd(n(d.revenue_build_manual))} build + {usd(n(d.revenue_retainer_stripe))} retainer
-          </div>
-        </div>
-        <div>
-          <div className="text-xs text-zinc-500">Spent on tools</div>
-          <div className="text-xl font-semibold text-zinc-100">{usd(cost)}</div>
-          <div className="text-[11px] text-zinc-500">
-            {usd(n(d.cost_per_month))}/mo run rate
-          </div>
-        </div>
-        <div>
-          <div className="text-xs text-zinc-500">Net</div>
-          <div className="text-xl font-semibold" style={{ color: net >= 0 ? "#34d399" : "#f87171" }}>
-            {net >= 0 ? "+" : "-"}{usd(Math.abs(net))}
-          </div>
-          <div className="text-[11px] text-zinc-500">your time not counted</div>
-        </div>
+    <Card
+      title="PLM, money in and out"
+      hint="All time. Your time is not counted: 305 commits over 8.5 months is the largest input by far, and a profit that omitted it would be the most misleading number here."
+    >
+      <Grid cols={3}>
+        <Stat label="Earned" value={usd(rev)}
+          hint={`${usd(num(d.revenue_build_manual))} build + ${usd(num(d.revenue_retainer_stripe))} retainer`} />
+        <Stat label="Spent on tools" value={usd(cost)}
+          hint={`${usd(num(d.cost_per_month))}/mo run rate against a $50 retainer`} />
+        <Stat label="Net" value={`${net >= 0 ? "+" : "-"}${usd(Math.abs(net))}`}
+          status={net >= 0 ? "good" : "critical"} hint="your time not counted" />
+      </Grid>
+      <div className="mt-4">
+        <Meter value={cost} max={rev} color="var(--status-serious)"
+          label={`Costs are ${costPct.toFixed(0)}% of revenue. The build fee is recorded by hand: it arrived as a bank transfer with no merchant name identifying it.`} />
       </div>
-      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-zinc-800">
-        <div className="h-full rounded-full bg-red-400/70" style={{ width: `${costPct}%` }} />
-      </div>
-      <p className="mt-2 text-[11px] leading-snug text-zinc-500">
-        Costs are {costPct.toFixed(0)}% of revenue. The build fee is recorded by hand:
-        it arrived as a bank transfer with no merchant name identifying it.
-      </p>
-    </div>
+    </Card>
   );
 }
 
@@ -137,8 +100,8 @@ export default function Review() {
       .catch((e) => setErr(String(e)));
   }, []);
 
-  if (err) return <main className="p-8 text-red-400">Error: {err}</main>;
-  if (!d) return <main className="p-8 text-zinc-500">Loading…</main>;
+  if (err) return <Page title="Systems"><Card><Empty>Could not load: {err}</Empty></Card></Page>;
+  if (!d) return <Page title="Systems"><Card><Empty>Loading…</Empty></Card></Page>;
 
   const groups = [1, 2, 3].map((sev) => ({
     sev: sev as 1 | 2 | 3,
@@ -148,23 +111,22 @@ export default function Review() {
   const hist = d.history;
 
   return (
-    <main className="mx-auto max-w-3xl px-5 pb-16 pt-4">
-      <PlmPnl rows={d.plmPnl} />
-      <PlmOps rows={d.plmOps} />
-      <h1 className="text-2xl font-semibold">Review</h1>
-      <p className="mt-1 text-sm leading-relaxed text-zinc-500">
-        The periodic review, assembled. This page exists because the governance stack says look
-        quarterly, which leaves nothing to tell you when quarterly has arrived. It is a digest, not
-        an alert: it reports on the cadence the framework already prescribes rather than interrupting
-        you when a number moves.
-      </p>
+    <Page
+      title="Systems"
+      subtitle="PLM's operational health and the periodic review, assembled. A digest on the cadence the framework already prescribes, not an alert that interrupts when a number moves."
+    >
+      <div className="space-y-3">
+        <PlmPnl rows={d.plmPnl} />
+        <PlmOps rows={d.plmOps} />
+      </div>
 
       <div
-        className={`mt-4 rounded-xl border px-4 py-3 text-sm ${
-          actNow > 0
-            ? "border-red-900/60 bg-red-950/20 text-red-200"
-            : "border-emerald-900/60 bg-emerald-950/20 text-emerald-200"
-        }`}
+        className="mt-4 rounded-[var(--radius)] border px-4 py-3 text-sm"
+        style={{
+          borderColor: actNow > 0 ? "var(--status-critical)" : "var(--status-good)",
+          background: "var(--surface-1)",
+          color: actNow > 0 ? "var(--status-critical)" : "var(--status-good)",
+        }}
       >
         {actNow > 0 ? (
           <>
@@ -183,32 +145,33 @@ export default function Review() {
           rows.length > 0 && (
             <section key={sev} className="mt-8">
               <div className="flex items-center gap-2">
-                <span className={`inline-block h-2 w-2 rounded-full ${SEVERITY[sev].dot}`} />
-                <h2 className={`text-sm font-semibold uppercase tracking-wide ${SEVERITY[sev].tone}`}>
+                <span className="inline-block h-2 w-2 rounded-full" style={{ background: SEVERITY[sev].color }} />
+                <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: SEVERITY[sev].color }}>
                   {SEVERITY[sev].label}
                 </h2>
-                <span className="text-xs text-zinc-600">{rows.length}</span>
+                <span className="text-xs" style={{ color: "var(--text-muted)" }}>{rows.length}</span>
               </div>
 
               <div className="mt-3 space-y-2">
                 {rows.map((r, i) => (
                   <div
                     key={i}
-                    className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3"
+                    className="rounded-[var(--radius)] border px-4 py-3 transition-colors hover:bg-[var(--surface-2)]"
+                    style={{ borderColor: "var(--surface-3)", background: "var(--surface-1)" }}
                   >
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <span className="text-sm font-medium text-zinc-200">
-                        <span className="mr-2 rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-400">
+                      <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                        <span className="mr-2 rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide" style={{ background: "var(--surface-2)", color: "var(--text-muted)" }}>
                           {String(r.section)}
                         </span>
                         {String(r.headline)}
                       </span>
                       {r.value && (
-                        <span className="text-xs tabular-nums text-zinc-500">{String(r.value)}</span>
+                        <span className="tnum text-xs" style={{ color: "var(--text-muted)" }}>{String(r.value)}</span>
                       )}
                     </div>
                     {r.detail && (
-                      <p className="mt-1 text-xs leading-relaxed text-zinc-500">{String(r.detail)}</p>
+                      <p className="mt-1 text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>{String(r.detail)}</p>
                     )}
                   </div>
                 ))}
@@ -218,17 +181,17 @@ export default function Review() {
       )}
 
       <section className="mt-10">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">
+        <h2 className="text-sm font-semibold uppercase tracking-wide tx-2">
           Snapshot history
         </h2>
-        <p className="mt-1 text-xs leading-relaxed text-zinc-500">
+        <p className="mt-1 text-xs leading-relaxed tx-m">
           One row per day. This is what lets a future review say what CHANGED rather than restating
           the dashboard. It starts thin and thickens with every run.
         </p>
-        <div className="mt-3 overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/50 p-3">
+        <div className="mt-3 overflow-x-auto rounded-xl border bd-s3 bg-s1 p-3">
           <table className="w-full text-xs">
             <thead>
-              <tr className="text-left uppercase tracking-wide text-zinc-600">
+              <tr className="text-left uppercase tracking-wide tx-m">
                 <th className="pb-1.5 pr-3 font-medium">Date</th>
                 <th className="pb-1.5 pr-3 text-right font-medium">US %</th>
                 <th className="pb-1.5 pr-3 text-right font-medium">Open actions</th>
@@ -237,10 +200,10 @@ export default function Review() {
                 <th className="pb-1.5 font-medium">Regime</th>
               </tr>
             </thead>
-            <tbody className="text-zinc-400">
+            <tbody className="tx-2">
               {hist.map((h) => (
-                <tr key={String(h.snapshot_date)} className="border-t border-zinc-800/70">
-                  <td className="py-1.5 pr-3 tabular-nums text-zinc-300">
+                <tr key={String(h.snapshot_date)} className="border-t bd-s3">
+                  <td className="py-1.5 pr-3 tabular-nums tx-2">
                     {String(h.snapshot_date).slice(0, 10)}
                   </td>
                   <td className="py-1.5 pr-3 text-right tabular-nums">{String(h.active_us_pct)}%</td>
@@ -255,7 +218,7 @@ export default function Review() {
             </tbody>
           </table>
           {hist.length < 2 && (
-            <p className="mt-2 text-xs text-zinc-600">
+            <p className="mt-2 text-xs tx-m">
               Only {hist.length} snapshot so far, so there is no change to report yet. That is
               honest rather than a bug: a time series cannot show movement on its first day.
             </p>
@@ -263,11 +226,11 @@ export default function Review() {
         </div>
       </section>
 
-      <p className="mt-8 text-xs leading-relaxed text-zinc-600">
+      <p className="mt-8 text-xs leading-relaxed tx-m">
         The same content renders as plain text via{" "}
         <span className="font-mono">scripts/review_digest.py</span>, which prints to stdout so an
         existing cron can mail or message it without this page choosing a transport.
       </p>
-    </main>
+    </Page>
   );
 }

@@ -2,18 +2,18 @@ import Link from "next/link";
 
 function H({ id, children }: { id: string; children: React.ReactNode }) {
   return (
-    <h2 id={id} className="mt-10 scroll-mt-20 text-lg font-semibold text-zinc-100">
+    <h2 id={id} className="mt-10 scroll-mt-20 text-lg font-semibold tx-1">
       {children}
     </h2>
   );
 }
 
 function P({ children }: { children: React.ReactNode }) {
-  return <p className="mt-3 text-sm leading-relaxed text-zinc-400">{children}</p>;
+  return <p className="mt-3 text-sm leading-relaxed tx-2">{children}</p>;
 }
 
 function Small({ children }: { children: React.ReactNode }) {
-  return <p className="mt-3 text-xs leading-relaxed text-zinc-500">{children}</p>;
+  return <p className="mt-3 text-xs leading-relaxed tx-m">{children}</p>;
 }
 
 export default function MarketAbout() {
@@ -29,8 +29,8 @@ export default function MarketAbout() {
         sections are context, and none of it is a trade instruction.
       </P>
 
-      <div className="mt-6 rounded-xl border border-amber-900/50 bg-amber-950/20 px-4 py-3 text-xs leading-relaxed text-amber-200/80">
-        <strong className="font-semibold text-amber-200">The governing rule.</strong> Cycle and regime
+      <div className="mt-6 rounded-xl border callout px-4 py-3 text-xs leading-relaxed callout-strong">
+        <strong className="font-semibold callout-strong">The governing rule.</strong> Cycle and regime
         reads inform the direction of the pre-committed quarterly rebalance. They never justify a trade
         between rebalances. There is good research showing that the more often people check a
         portfolio, the less risk they take and the lower their long-run returns, so frequent checking
@@ -45,33 +45,33 @@ export default function MarketAbout() {
       <div className="mt-3 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-xs uppercase tracking-wide text-zinc-500">
+            <tr className="text-left text-xs uppercase tracking-wide tx-m">
               <th className="pb-2 pr-4 font-medium">Question</th>
               <th className="pb-2 font-medium">Who decides</th>
             </tr>
           </thead>
-          <tbody className="text-zinc-400">
-            <tr className="border-t border-zinc-800">
+          <tbody className="tx-2">
+            <tr className="border-t bd-s3">
               <td className="py-2 pr-4">Guaranteed returns (employer match, HSA, high-rate debt)</td>
               <td className="py-2">Beats everything else</td>
             </tr>
-            <tr className="border-t border-zinc-800">
+            <tr className="border-t bd-s3">
               <td className="py-2 pr-4">Savings rate and income growth</td>
               <td className="py-2">Felix (human capital)</td>
             </tr>
-            <tr className="border-t border-zinc-800">
+            <tr className="border-t bd-s3">
               <td className="py-2 pr-4">Stock/bond split and geography</td>
               <td className="py-2">Cederburg research. Dalio gets no vote</td>
             </tr>
-            <tr className="border-t border-zinc-800">
+            <tr className="border-t bd-s3">
               <td className="py-2 pr-4">Concentration across the whole balance sheet</td>
               <td className="py-2">Dalio</td>
             </tr>
-            <tr className="border-t border-zinc-800">
+            <tr className="border-t bd-s3">
               <td className="py-2 pr-4">Regime and cycle position</td>
               <td className="py-2">Dalio, read-only</td>
             </tr>
-            <tr className="border-t border-zinc-800">
+            <tr className="border-t bd-s3">
               <td className="py-2 pr-4">Process and behavior</td>
               <td className="py-2">Felix</td>
             </tr>
@@ -87,10 +87,10 @@ export default function MarketAbout() {
       </P>
       <P>
         The page shows these two ways, and they can disagree, which is not a bug. The{" "}
-        <strong className="text-zinc-300">level</strong> read asks whether growth is positive and
+        <strong className="tx-2">level</strong> read asks whether growth is positive and
         whether inflation is hot, using thresholds of 0.5% growth and 2.5% inflation (the Fed&apos;s 2%
         target plus a tolerance band). The{" "}
-        <strong className="text-zinc-300">direction</strong> read asks whether each is higher or lower
+        <strong className="tx-2">direction</strong> read asks whether each is higher or lower
         than three months ago. Inflation can be high and falling at the same time. All Weather boxes
         are about direction, so the highlighted box can differ from the headline label.
       </P>
@@ -115,7 +115,7 @@ export default function MarketAbout() {
         diversification that does not exist.
       </P>
       <P>
-        <strong className="text-zinc-300">Why one box is deliberately empty.</strong> Covering the
+        <strong className="tx-2">Why one box is deliberately empty.</strong> Covering the
         falling-growth, falling-inflation box properly requires long government bonds. The governing
         thesis holds zero bonds, on evidence that at a multi-decade horizon bonds cost roughly 9.4
         percentage points of equivalent savings rate and get hurt badly in exactly the inflationary
@@ -129,9 +129,9 @@ export default function MarketAbout() {
 
       <H id="bands">US vs International</H>
       <P>
-        Two ceilings are drawn. The <strong className="text-zinc-300">ALTO band</strong> is the
+        Two ceilings are drawn. The <strong className="tx-2">ALTO band</strong> is the
         personal rule: 50-55% of equity in US stocks. The{" "}
-        <strong className="text-zinc-300">evidence zone</strong> is 11-55% US, which is the range the
+        <strong className="tx-2">evidence zone</strong> is 11-55% US, which is the range the
         Cederburg, Anarkulova and O&apos;Doherty lifecycle paper measures as costing almost nothing
         relative to their optimum of 33% domestic and 67% international.
       </P>
@@ -156,18 +156,18 @@ export default function MarketAbout() {
         correction somewhere else.
       </P>
       <P>
-        <strong className="text-zinc-300">1. Debt versus income.</strong> Debt has to grow no faster
+        <strong className="tx-2">1. Debt versus income.</strong> Debt has to grow no faster
         than the income servicing it. When it does not, there are only three exits: inflate the debt
         away, default, or have the central bank absorb it. This is the slow engine behind the Big Cycle.
       </P>
       <P>
-        <strong className="text-zinc-300">2. Capacity.</strong> How much of the country&apos;s
+        <strong className="tx-2">2. Capacity.</strong> How much of the country&apos;s
         productive capacity is actually being used, compared to its own long-run average over about 20
         years of data. Above average means bottlenecks and rising prices. Below means idle workers and
         machines, which is slack and disinflation.
       </P>
       <P>
-        <strong className="text-zinc-300">3. The risk-premium stack.</strong> Riskier money must pay
+        <strong className="tx-2">3. The risk-premium stack.</strong> Riskier money must pay
         more than safer money: cash least, government bonds more, corporate credit most. When that
         ladder flattens or inverts, money is being squeezed somewhere and the system is straining.
       </P>
@@ -190,7 +190,7 @@ export default function MarketAbout() {
         answers the only question that matters: is this high or not, by its own standards.
       </P>
       <P>
-        <strong className="text-zinc-300">The gap between the two kinds is the signal.</strong> When
+        <strong className="tx-2">The gap between the two kinds is the signal.</strong> When
         the newspaper measures run hot while the market measures stay calm, the headlines are loud but
         money is not frightened yet. Markets price what they expect to be paid, not what is upsetting.
         Ben Felix makes this point on the podcast by reading a magazine passage about war, political
@@ -218,7 +218,7 @@ export default function MarketAbout() {
         definition so there is one stage model rather than two that drift apart.
       </P>
       <P>
-        <strong className="text-zinc-300">Why there is a second panel.</strong> Debt-to-GDP alone
+        <strong className="tx-2">Why there is a second panel.</strong> Debt-to-GDP alone
         cannot separate &quot;high debt, still the reserve currency, everyone still lends to you&quot;
         from &quot;high debt and the world is backing away.&quot; It is slow and it only goes one
         direction. So the four things Dalio says actually mark the turn into decline are measured
@@ -249,12 +249,12 @@ export default function MarketAbout() {
         servicing it becomes unsustainable.
       </P>
       <P>
-        <strong className="text-zinc-300">Attribution.</strong> This is Fred Harrison and Phil
+        <strong className="tx-2">Attribution.</strong> This is Fred Harrison and Phil
         Anderson&apos;s model, building on Homer Hoyt&apos;s land-value research from the 1930s. It is
         frequently and incorrectly credited to Warren Buffett, who has no cycle model of any kind.
       </P>
       <P>
-        <strong className="text-zinc-300">What is measured versus modeled.</strong> The cycle low and
+        <strong className="tx-2">What is measured versus modeled.</strong> The cycle low and
         the years elapsed since are measured from the Case-Shiller national home price index: the model
         finds the minimum in the data rather than being told a date. The 18-year length
         and the phase boundaries are the model&apos;s, not the data&apos;s. A warning appears if the
@@ -283,54 +283,54 @@ export default function MarketAbout() {
       <div className="mt-3 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-xs uppercase tracking-wide text-zinc-500">
+            <tr className="text-left text-xs uppercase tracking-wide tx-m">
               <th className="pb-2 pr-4 font-medium">Pattern</th>
               <th className="pb-2 pr-4 font-medium">Measured?</th>
               <th className="pb-2 font-medium">Where</th>
             </tr>
           </thead>
-          <tbody className="text-zinc-400">
-            <tr className="border-t border-zinc-800">
+          <tbody className="tx-2">
+            <tr className="border-t bd-s3">
               <td className="py-2 pr-4">Investor overconfidence</td>
-              <td className="py-2 pr-4 text-emerald-400">Yes</td>
+              <td className="py-2 pr-4 tx-good">Yes</td>
               <td className="py-2">CAPE percentile over 144 years</td>
             </tr>
-            <tr className="border-t border-zinc-800">
+            <tr className="border-t bd-s3">
               <td className="py-2 pr-4">Debt buildup</td>
-              <td className="py-2 pr-4 text-emerald-400">Yes</td>
+              <td className="py-2 pr-4 tx-good">Yes</td>
               <td className="py-2">Credit/GDP level and 5-year change over 151 years</td>
             </tr>
-            <tr className="border-t border-zinc-800">
+            <tr className="border-t bd-s3">
               <td className="py-2 pr-4">Regulatory shortcoming</td>
-              <td className="py-2 pr-4 text-amber-400">No</td>
+              <td className="py-2 pr-4 tx-warn">No</td>
               <td className="py-2">Judgment. Ask the question below</td>
             </tr>
-            <tr className="border-t border-zinc-800">
+            <tr className="border-t bd-s3">
               <td className="py-2 pr-4">Poorly understood innovation</td>
-              <td className="py-2 pr-4 text-amber-400">No</td>
+              <td className="py-2 pr-4 tx-warn">No</td>
               <td className="py-2">Judgment. Ask the question below</td>
             </tr>
           </tbody>
         </table>
       </div>
       <P>The four questions to ask yourself, since no dashboard can answer them:</P>
-      <ol className="mt-2 space-y-2 text-sm leading-relaxed text-zinc-400">
+      <ol className="mt-2 space-y-2 text-sm leading-relaxed tx-2">
         <li>
-          <strong className="text-zinc-300">1. Overconfidence.</strong> Are people buying because of
+          <strong className="tx-2">1. Overconfidence.</strong> Are people buying because of
           what a thing is worth, or because they expect to flip it to someone else for more tomorrow?
         </li>
         <li>
-          <strong className="text-zinc-300">2. Regulation.</strong> Is there a fast-growing market
+          <strong className="tx-2">2. Regulation.</strong> Is there a fast-growing market
           with no guard rails at all? Or are rules being slammed onto a market that is not ready for
           them?
         </li>
         <li>
-          <strong className="text-zinc-300">3. Innovation.</strong> Is money pouring into a new
+          <strong className="tx-2">3. Innovation.</strong> Is money pouring into a new
           instrument or asset that its own buyers cannot explain? Is anyone saying it is different
           this time?
         </li>
         <li>
-          <strong className="text-zinc-300">4. Debt.</strong> Are people buying with money they do
+          <strong className="tx-2">4. Debt.</strong> Are people buying with money they do
           not have, and is the system leaning on borrowed cash?
         </li>
       </ol>
@@ -339,34 +339,34 @@ export default function MarketAbout() {
       <div className="mt-3 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-xs uppercase tracking-wide text-zinc-500">
+            <tr className="text-left text-xs uppercase tracking-wide tx-m">
               <th className="pb-2 pr-4 font-medium">Episode</th>
               <th className="pb-2 pr-4 font-medium">The innovation</th>
               <th className="pb-2 font-medium">Patterns</th>
             </tr>
           </thead>
-          <tbody className="text-zinc-400">
-            <tr className="border-t border-zinc-800">
+          <tbody className="tx-2">
+            <tr className="border-t bd-s3">
               <td className="py-2 pr-4 whitespace-nowrap">1637 Tulips</td>
               <td className="py-2 pr-4">Futures contracts</td>
               <td className="py-2">Overconfidence, innovation</td>
             </tr>
-            <tr className="border-t border-zinc-800">
+            <tr className="border-t bd-s3">
               <td className="py-2 pr-4 whitespace-nowrap">1907 Panic</td>
               <td className="py-2 pr-4">Investment trusts</td>
               <td className="py-2">Regulation applied too hard, too late</td>
             </tr>
-            <tr className="border-t border-zinc-800">
+            <tr className="border-t bd-s3">
               <td className="py-2 pr-4 whitespace-nowrap">1929 Crash</td>
               <td className="py-2 pr-4">Leveraged investment trusts</td>
               <td className="py-2">All four. Regulation barely acted at all</td>
             </tr>
-            <tr className="border-t border-zinc-800">
+            <tr className="border-t bd-s3">
               <td className="py-2 pr-4 whitespace-nowrap">1987 Black Monday</td>
               <td className="py-2 pr-4">Portfolio insurance</td>
               <td className="py-2">Innovation nobody understood, plus leverage mania</td>
             </tr>
-            <tr className="border-t border-zinc-800">
+            <tr className="border-t bd-s3">
               <td className="py-2 pr-4 whitespace-nowrap">2008 GFC</td>
               <td className="py-2 pr-4">Mortgage-backed securities, CDOs</td>
               <td className="py-2">All four, with debt as the amplifier</td>
@@ -426,39 +426,39 @@ export default function MarketAbout() {
       <div className="mt-3 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-xs uppercase tracking-wide text-zinc-500">
+            <tr className="text-left text-xs uppercase tracking-wide tx-m">
               <th className="pb-2 pr-4 font-medium">Section</th>
               <th className="pb-2 pr-4 font-medium">Window</th>
               <th className="pb-2 font-medium">Source</th>
             </tr>
           </thead>
-          <tbody className="text-zinc-400">
-            <tr className="border-t border-zinc-800">
+          <tbody className="tx-2">
+            <tr className="border-t bd-s3">
               <td className="py-2 pr-4">Property cycle test</td>
               <td className="py-2 pr-4">1870-2020, 18 countries</td>
               <td className="py-2">JST Macrohistory</td>
             </tr>
-            <tr className="border-t border-zinc-800">
+            <tr className="border-t bd-s3">
               <td className="py-2 pr-4">Valuation</td>
               <td className="py-2 pr-4">1871-present, monthly</td>
               <td className="py-2">Shiller</td>
             </tr>
-            <tr className="border-t border-zinc-800">
+            <tr className="border-t bd-s3">
               <td className="py-2 pr-4">Credit and public debt</td>
               <td className="py-2 pr-4">1870-2020</td>
               <td className="py-2">JST Macrohistory</td>
             </tr>
-            <tr className="border-t border-zinc-800">
+            <tr className="border-t bd-s3">
               <td className="py-2 pr-4">UK reference series</td>
               <td className="py-2 pr-4">1209-2016 for prices, ~1700 for the rest</td>
               <td className="py-2">Bank of England millennium dataset</td>
             </tr>
-            <tr className="border-t border-zinc-800">
+            <tr className="border-t bd-s3">
               <td className="py-2 pr-4">Regime, equilibriums, indicators</td>
               <td className="py-2 pr-4">2-20 years</td>
               <td className="py-2">FRED, daily</td>
             </tr>
-            <tr className="border-t border-zinc-800">
+            <tr className="border-t bd-s3">
               <td className="py-2 pr-4">News climate</td>
               <td className="py-2 pr-4">full series: 1985, 1990, 1993 starts</td>
               <td className="py-2">Cannot be extended, indices did not exist</td>

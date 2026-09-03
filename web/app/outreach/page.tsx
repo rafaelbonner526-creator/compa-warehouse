@@ -24,7 +24,7 @@ type Data = {
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 ${className}`}>
+    <div className={`rounded-2xl border bd-s3 bg-s1 p-5 ${className}`}>
       {children}
     </div>
   );
@@ -33,9 +33,9 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
 function Kpi({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <Card>
-      <div className="text-sm text-zinc-400">{label}</div>
+      <div className="text-sm tx-2">{label}</div>
       <div className="mt-1 text-3xl font-semibold tracking-tight">{value}</div>
-      {sub && <div className="mt-1 text-xs text-zinc-500">{sub}</div>}
+      {sub && <div className="mt-1 text-xs tx-m">{sub}</div>}
     </Card>
   );
 }
@@ -56,8 +56,8 @@ export default function Outreach() {
       .catch((e) => setErr(String(e)));
   }, []);
 
-  if (err) return <main className="p-8 text-red-400">Error: {err}</main>;
-  if (!d) return <main className="p-8 text-zinc-500">Loading…</main>;
+  if (err) return <main className="p-8 tx-crit">Error: {err}</main>;
+  if (!d) return <main className="p-8 tx-m">Loading…</main>;
 
   const k = d.kpi;
   const byAngle = d.funnel.map((r) => ({
@@ -83,24 +83,24 @@ export default function Outreach() {
     <main className="mx-auto max-w-5xl px-5 pb-10 pt-4">
       <div className="flex items-baseline justify-between">
         <h1 className="text-2xl font-semibold">Outreach</h1>
-        {refreshed && <span className="text-xs text-zinc-500">Last refreshed {refreshed} ET</span>}
+        {refreshed && <span className="text-xs tx-m">Last refreshed {refreshed} ET</span>}
       </div>
-      <p className="mt-1 text-sm text-zinc-500">SIGNAL cold-outreach funnel.</p>
+      <p className="mt-1 text-sm tx-m">SIGNAL cold-outreach funnel.</p>
 
       {/* venture binary: the only panel pointed at the stated priority */}
       {rev && (
         <div className="mt-6">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="text-lg font-semibold">Ampwell revenue</h2>
-            <span className="text-xs text-zinc-500">
+            <span className="text-xs tx-m">
               binary: {Number(rev.clients_target_min)}-{Number(rev.clients_target_max)} paying
               clients by {String(rev.deadline).slice(0, 10)}
             </span>
           </div>
 
           {testOnly && (
-            <div className="mt-2 rounded-xl border border-amber-900/60 bg-amber-950/25 px-4 py-3 text-xs leading-relaxed text-amber-200/90">
-              <strong className="font-semibold text-amber-200">
+            <div className="mt-2 rounded-xl border callout px-4 py-3 text-xs leading-relaxed callout-strong">
+              <strong className="font-semibold callout-strong">
                 Stripe is connected in TEST mode, so there is no real revenue here.
               </strong>{" "}
               The key currently in use is an <span className="font-mono">sk_test</span> key and the
@@ -138,7 +138,7 @@ export default function Outreach() {
               sub="recurring retainers"
             />
           </div>
-          <p className="mt-2 text-xs leading-relaxed text-zinc-500">
+          <p className="mt-2 text-xs leading-relaxed tx-m">
             Miss the binary and the premium-warm motion is wrong, which triggers a real pivot review
             rather than more volume. With no cash pressure, the date is the forcing function.
           </p>
@@ -155,7 +155,7 @@ export default function Outreach() {
 
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
-          <div className="mb-3 text-sm font-medium text-zinc-300">Reply rate by angle</div>
+          <div className="mb-3 text-sm font-medium tx-2">Reply rate by angle</div>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={byAngle} margin={{ left: -12, right: 8, top: 4 }}>
               <XAxis dataKey="angle" tick={{ fill: "#71717a", fontSize: 11 }} />
@@ -166,7 +166,7 @@ export default function Outreach() {
           </ResponsiveContainer>
         </Card>
         <Card>
-          <div className="mb-3 text-sm font-medium text-zinc-300">Leads by current status</div>
+          <div className="mb-3 text-sm font-medium tx-2">Leads by current status</div>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={byStatus} layout="vertical" margin={{ left: 40, right: 24 }}>
               <XAxis type="number" hide />
@@ -179,10 +179,10 @@ export default function Outreach() {
       </div>
 
       <Card className="mt-3">
-        <div className="mb-3 text-sm font-medium text-zinc-300">Funnel by angle</div>
+        <div className="mb-3 text-sm font-medium tx-2">Funnel by angle</div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="text-left text-xs text-zinc-500">
+            <thead className="text-left text-xs tx-m">
               <tr>
                 <th className="py-1 pr-4">Angle</th>
                 <th className="py-1 pr-4">Touches</th>
@@ -192,9 +192,9 @@ export default function Outreach() {
                 <th className="py-1">Reply %</th>
               </tr>
             </thead>
-            <tbody className="text-zinc-300">
+            <tbody className="tx-2">
               {d.funnel.map((r, i) => (
-                <tr key={i} className="border-t border-zinc-800">
+                <tr key={i} className="border-t bd-s3">
                   <td className="py-1.5 pr-4">{String(r.angle)}</td>
                   <td className="py-1.5 pr-4">{String(r.total_touches)}</td>
                   <td className="py-1.5 pr-4">{String(r.opens)}</td>

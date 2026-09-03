@@ -96,3 +96,40 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* Semantic utilities.
+   ------------------------------------------------------------------------
+   These exist so pages reference ROLES rather than raw palette steps. The old
+   pages were written against Tailwind's zinc scale directly, which meant the
+   surface could not be changed in one place and each page drifted its own
+   greens and reds. Converting `text-zinc-400` to `tx-2` makes the token the
+   single source, and moving a surface is then one edit here rather than 174
+   scattered class names in one file. */
+.bg-s0 { background: var(--surface-0); }
+.bg-s1 { background: var(--surface-1); }
+.bg-s2 { background: var(--surface-2); }
+.bd-s3 { border-color: var(--surface-3); }
+.tx-1  { color: var(--text-primary); }
+.tx-2  { color: var(--text-secondary); }
+.tx-m  { color: var(--text-muted); }
+.tx-good { color: var(--status-good); }
+.tx-warn { color: var(--status-warning); }
+.tx-serious { color: var(--status-serious); }
+.tx-crit { color: var(--status-critical); }
+.bg-good { background: var(--status-good); }
+.bg-warn { background: var(--status-warning); }
+.bg-crit { background: var(--status-critical); }
+
+/* Callout: a caveat box. Amber-on-dark was hand-rolled with four different
+   opacity combinations across three files; one definition instead. */
+.callout {
+  background: color-mix(in oklab, var(--status-warning) 12%, var(--surface-1));
+  border: 1px solid color-mix(in oklab, var(--status-warning) 38%, transparent);
+  color: var(--text-secondary);
+}
+.callout-strong { color: var(--status-warning); }
+.btn-primary {
+  background: var(--series-1);
+  color: #ffffff;
+}
+.btn-primary:hover { background: color-mix(in oklab, var(--series-1) 85%, #fff); }

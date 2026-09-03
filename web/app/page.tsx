@@ -23,7 +23,8 @@ import {
 
 type Data = {
   sts: Row; networth: Row[]; breakdown: Row[]; cashflow: Row[];
-  categories: Row[]; merchants: Row[]; bills: Row[]; runway: Row | null;
+  categories: Row[]; categoryTrend: Row[]; merchants: Row[]; bills: Row[];
+  recent: Row[]; runway: Row | null; recurring: Row | null;
   budget: Row[]; componentSpend: Row[]; refreshed_at: string | null;
 };
 
@@ -218,6 +219,82 @@ export default function Money() {
                     <Td color="var(--text-muted)">{usd(num(r.spend_usd))}</Td>
                     <Td color={att != null ? "var(--status-good)" : undefined}>
                       {att != null ? usd(att, true) : "—"}
+                    </Td>
+                  </Tr>
+                );
+              })}
+            </Table>
+          )}
+        </Card>
+      </div>
+
+      {/* Panels restored 2026-09-03. The first pass of this redesign dropped
+          them, which the coverage gate caught (budget: categoryTrend served and
+          read by no page). They were working features removed as a side effect
+          of a restyle, not by request, so they come back rather than staying
+          gone by accident. */}
+      <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <Card title="This month against the 3-month average" hint="Direction and size of the change, not the level.">
+          {!d.categoryTrend?.length ? <Empty>No trend data.</Empty> : (
+            <Table head={["Category", "This month", "Change"]}>
+              {d.categoryTrend.map((r, i) => {
+                const delta = num(r.delta);
+                const up = delta > 0;
+                return (
+                  <Tr key={i}>
+                    <Td align="left" mono={false} color="var(--text-primary)">{String(r.category_group)}</Td>
+                    <Td>{usd(num(r.this_month))}</Td>
+                    {/* Spending MORE is the bad direction here, so up is the
+                        warning colour. An arrow carries it too, never colour alone. */}
+                    <Td color={up ? "var(--status-serious)" : "var(--status-good)"}>
+                      {up ? "▲" : "▼"} {usd(Math.abs(delta))}
+                    </Td>
+                  </Tr>
+                );
+              })}
+            </Table>
+          )}
+        </Card>
+
+        <Card title="Top merchants" hint="Last 30 days.">
+          {!d.merchants?.length ? <Empty>No merchant data.</Empty> : (
+            <Table head={["Merchant", "Spend"]}>
+              {d.merchants.map((m, i) => (
+                <Tr key={i}>
+                  <Td align="left" mono={false} color="var(--text-primary)">{String(m.merchant)}</Td>
+                  <Td>{usd(num(m.spend))}</Td>
+                </Tr>
+              ))}
+            </Table>
+          )}
+        </Card>
+      </div>
+
+      <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <Card title="Upcoming bills">
+          {!d.bills?.length ? <Empty>None upcoming.</Empty> : (
+            <Table head={["Merchant", "Due", "Amount"]}>
+              {d.bills.map((b, i) => (
+                <Tr key={i}>
+                  <Td align="left" mono={false} color="var(--text-primary)">{String(b.merchant)}</Td>
+                  <Td color="var(--text-muted)">{String(b.due_date).slice(5)}</Td>
+                  <Td>{usd(num(b.amount))}</Td>
+                </Tr>
+              ))}
+            </Table>
+          )}
+        </Card>
+
+        <Card title="Recent transactions">
+          {!d.recent?.length ? <Empty>Nothing recent.</Empty> : (
+            <Table head={["Merchant", "Amount"]}>
+              {d.recent.map((t, i) => {
+                const amt = num(t.amount);
+                return (
+                  <Tr key={i}>
+                    <Td align="left" mono={false} color="var(--text-primary)">{String(t.merchant)}</Td>
+                    <Td color={amt > 0 ? "var(--status-good)" : "var(--text-secondary)"}>
+                      {amt > 0 ? "+" : "-"}{usd(Math.abs(amt))}
                     </Td>
                   </Tr>
                 );
