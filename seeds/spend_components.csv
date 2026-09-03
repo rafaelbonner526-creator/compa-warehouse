@@ -1,12 +1,19 @@
 match_pattern,component,serves,cost_type,note
 anthropic,Claude API,mixed,metered,Card total covers Claude Code and personal use as well as PLM. Langfuse is the only source that isolates PLM's share
 openai,OpenAI API,plm,metered,Embeddings for retrieval
-railway,Railway,plm,subscription,Hosts the orchestrator
-supabase,Supabase,plm,subscription,Database and edge functions
+railway,Railway,plm,subscription,BILLING NOT VISIBLE. Hobby plan is $5/mo but only one $5 charge exists in 14 months of transactions. Either a payment method Monarch does not sync or running on credit
+supabase,Supabase,plm,subscription,BILLING NOT VISIBLE. Zero charges ever found. Either free tier or a payment method Monarch does not sync
 resend,Resend,plm,subscription,Transactional email to members
 pdfmunk,pdfmunk,plm,metered,Report PDF rendering
+htmlcsstoimg,HTMLCSStoImage,plm,metered,Image rendering. Found 2026-09-03 by hunting unmatched merchants
 cloudflare,Cloudflare,shared,subscription,DNS and domains
-instantly,Instantly,outreach,subscription,Cold email sending. Outreach not PLM
-apify,Apify,outreach,subscription,Lead scraping. Outreach not PLM
-zerobounce,ZeroBounce,outreach,metered,Email validation. Outreach not PLM
+google workspace,Google Workspace,shared,subscription,Email and docs
+dropbox,Dropbox,shared,subscription,File storage
+otter,Otter.ai,shared,subscription,Meeting transcription
+runpod,RunPod,shared,metered,GPU compute
+mailsuite,Mailsuite,outreach,subscription,Open and link tracking on cold email. Found 2026-09-03 by hunting unmatched merchants
+loom,Loom,outreach,subscription,Demo recording
+instantly,Instantly,outreach,subscription,Cold email sending
+apify,Apify,outreach,subscription,Lead scraping
+zerobounce,ZeroBounce,outreach,metered,Email validation
 upwork,Upwork,marketplace,metered,Connects and fees
