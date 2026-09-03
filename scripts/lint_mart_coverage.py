@@ -89,6 +89,35 @@ def main():
 
     stale_excuses = [m for m in MART_COVERAGE_IGNORE if m not in marts]
 
+    # SECOND CHECK, REPORT-ONLY: a payload key served by an API route that no
+    # page ever reads. Found on 2026-09-03 when this gate passed green while the
+    # baselines mart sat in /api/investing with nothing rendering it: "reaches
+    # the dashboard" had quietly come to mean "reaches the dashboard's server",
+    # which is not what a person sees.
+    #
+    # Report-only on purpose. The route-key to page-usage link is a heuristic
+    # (keys are referenced as d.key, data.key, destructured, or renamed), and a
+    # gate that fires on a false positive gets switched off within a week. It
+    # earns promotion to blocking after it has been quiet against real traffic.
+    page_src = read_all(sorted((ROOT / "web" / "app").rglob("page.tsx")))
+    unrendered = []
+    for route in sorted(API_DIR.rglob("route.ts")):
+        try:
+            src = route.read_text()
+        except OSError:
+            continue
+        m = re.search(r"return NextResponse\.json\(\{(.*?)\}\)", src, re.S)
+        if not m:
+            continue
+        for raw in m.group(1).split(","):
+            key = raw.split(":")[0].strip()
+            if not key or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key):
+                continue
+            if key in ("error",):
+                continue
+            if not re.search(rf"\b{re.escape(key)}\b", page_src):
+                unrendered.append(f"{route.parent.name}: {key}")
+
     brief_only = [m for m in marts if referenced(m, digest_src) and not referenced(m, api_src)]
     dash_only = [m for m in marts if referenced(m, api_src) and not referenced(m, digest_src)]
 
@@ -117,6 +146,12 @@ def main():
         for m in stale_excuses:
             print(f"  {m}")
         rc = 1
+    if unrendered:
+        print("\nNOTE (report-only): served by an API route, referenced by no page.")
+        print("The data reaches the server and never reaches a human:")
+        for u in unrendered:
+            print(f"  {u}")
+
     if rc == 0:
         print("\nPASS: every mart is read somewhere, or excused with a reason.")
     return rc

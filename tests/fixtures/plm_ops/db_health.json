@@ -1,0 +1,1 @@
+[{"captured_at": "2026-09-03T12:00:00+00:00", "db_size_bytes": 100000000, "user_tables": 50, "live_tuples": 8000, "dead_tuples": 400, "unused_indexes": 60, "total_indexes": 150, "index_size_bytes": 12000000, "connections": 8, "longest_query_seconds": 0.0}]

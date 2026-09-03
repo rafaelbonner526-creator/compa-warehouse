@@ -15,6 +15,7 @@ jobs:
       FRED_LANDING_DIR: tests/fixtures/fred
       LONGHISTORY_LANDING_DIR: tests/fixtures/longhistory
       STRIPE_LANDING_DIR: tests/fixtures/stripe
+      PLM_OPS_LANDING_DIR: tests/fixtures/plm_ops
     steps:
       - uses: actions/checkout@v4
       - name: Install uv
@@ -35,6 +36,8 @@ jobs:
         run: uv run ingestion/load_longhistory.py
       - name: Load Stripe bronze from fixtures (dlt)
         run: uv run ingestion/load_stripe.py
+      - name: Load PLM ops bronze from fixtures (dlt)
+        run: uv run ingestion/load_plm_ops.py
       - name: Mart coverage (every mart reaches a surface, or says why not)
         run: python3 scripts/lint_mart_coverage.py
       - name: dbt build (models + snapshot + tests)

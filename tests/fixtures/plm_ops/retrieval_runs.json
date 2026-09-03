@@ -1,0 +1,2 @@
+[{"run_timestamp": "2026-05-27 02:04:28 UTC", "recall_at_5": "0.9529411764705882", "recall_at_10": "0.7433333333333334", "mrr": "0.7680555555555555", "mean_similarity": "0.607298", "mean_latency_ms": "634.05", "n_cases": "20"},
+ {"run_timestamp": "2026-09-03 16:47:57 UTC", "recall_at_5": "0.9529411764705882", "recall_at_10": "0.7433333333333334", "mrr": "0.7680555555555555", "mean_similarity": "0.607208", "mean_latency_ms": "586.5", "n_cases": "20"}]

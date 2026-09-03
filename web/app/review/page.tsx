@@ -3,13 +3,76 @@
 import { useEffect, useState } from "react";
 
 type Row = Record<string, string | number | null>;
-type Data = { digest: Row[]; history: Row[] };
+type Data = { digest: Row[]; history: Row[]; plmOps: Row[] };
 
 const SEVERITY = {
   1: { label: "Act now", tone: "text-red-400", dot: "bg-red-400" },
   2: { label: "At the review", tone: "text-amber-400", dot: "bg-amber-400" },
   3: { label: "Context", tone: "text-zinc-400", dot: "bg-zinc-500" },
 } as const;
+
+
+// PLM operational health. Catalog aggregates and RAG eval metrics only; no
+// patient data is in this warehouse by construction.
+//
+// Search quality is shown as STABILITY, not as a trend line. recall@5 has been
+// identical to sixteen decimals across 99 days because embeddings are
+// deterministic and the golden set is fixed, so a chart of it would be a flat
+// line pretending to be information. What matters is whether it moved.
+function PlmOps({ rows }: { rows: Row[] }) {
+  if (!rows?.length) return null;
+  const db = rows.find((r) => r.area === "database");
+  const rt = rows.find((r) => r.area === "retrieval");
+  const n = (v: unknown) => (v == null ? null : Number(v));
+  const unusedPct = n(db?.unused_index_pct);
+  const stable = n(rt?.runs_at_current_value);
+  return (
+    <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
+      <h2 className="text-sm font-semibold text-zinc-300">PLM system</h2>
+      <p className="mt-1 text-xs text-zinc-500">
+        Operational only. No patient data reaches this warehouse.
+      </p>
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {db && (
+          <>
+            <div>
+              <div className="text-xs text-zinc-500">Database</div>
+              <div className="text-lg font-semibold">{n(db.db_size_mb)?.toFixed(0)} MB</div>
+              <div className="text-[11px] text-zinc-500">{String(db.user_tables)} tables</div>
+            </div>
+            <div>
+              <div className="text-xs text-zinc-500">Unused indexes</div>
+              <div className="text-lg font-semibold"
+                   style={{ color: unusedPct != null && unusedPct >= 50 ? "#fbbf24" : undefined }}>
+                {String(db.unused_indexes)}/{String(db.total_indexes)}
+              </div>
+              <div className="text-[11px] text-zinc-500">
+                {unusedPct?.toFixed(0)}% never scanned
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-zinc-500">Dead rows</div>
+              <div className="text-lg font-semibold">{n(db.dead_tuple_pct)?.toFixed(0)}%</div>
+              <div className="text-[11px] text-zinc-500">autovacuum acts near 20%</div>
+            </div>
+          </>
+        )}
+        {rt && (
+          <div>
+            <div className="text-xs text-zinc-500">Search quality</div>
+            <div className="text-lg font-semibold">
+              {stable && stable >= 2 ? "unchanged" : "moved"}
+            </div>
+            <div className="text-[11px] text-zinc-500">
+              {stable ? `${stable} checks agree` : "check it"} &middot;{" "}
+              {n(rt.mean_latency_ms)?.toFixed(0)}ms
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function Review() {
   const [d, setD] = useState<Data | null>(null);
@@ -34,6 +97,7 @@ export default function Review() {
 
   return (
     <main className="mx-auto max-w-3xl px-5 pb-16 pt-4">
+      <PlmOps rows={d.plmOps} />
       <h1 className="text-2xl font-semibold">Review</h1>
       <p className="mt-1 text-sm leading-relaxed text-zinc-500">
         The periodic review, assembled. This page exists because the governance stack says look

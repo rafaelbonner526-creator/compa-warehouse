@@ -386,6 +386,58 @@ def section_market(c):
     return out
 
 
+# ------------------------------------------------------------------- plm ops
+# Operational health only. No patient data reaches this warehouse: see
+# ingestion/extract_plm_ops.py for why row-level export is excluded even after
+# stripping identifiers.
+#
+# Retrieval quality is NOT reported as a trend. recall@5 has been identical to
+# sixteen decimals across 99 days because embeddings are deterministic and the
+# golden set is fixed. Saying "recall@5 is 0.95" every morning is noise; the
+# honest line is that it has not moved, and the gate in PLM is what would catch
+# it if it did. Only a REGRESSION is worth a sentence here.
+def section_plm(c):
+    rows_ = rows(c, f"SELECT * FROM `{PROJECT}.gold.mart_plm_ops`")
+    if not rows_:
+        return []
+    db = next((r for r in rows_ if r["area"] == "database"), None)
+    rt = next((r for r in rows_ if r["area"] == "retrieval"), None)
+    out = []
+
+    if db:
+        unused = db.get("unused_indexes")
+        total = db.get("total_indexes")
+        pct = db.get("unused_index_pct")
+        size = db.get("db_size_mb")
+        head = f"  The database is {float(size):.0f} MB across {db['user_tables']} tables."
+        subs = []
+        # Threshold, not vibes: an index that has never been scanned earns nothing
+        # and costs write throughput on every insert. Worth saying once it is most
+        # of them.
+        if unused and total and float(pct) >= 50:
+            subs.append(f"    {unused} of {total} indexes ({float(pct):.0f}%) have never "
+                        f"been used. Each one slows every write and returns nothing.")
+        dead = db.get("dead_tuple_pct")
+        if dead is not None and float(dead) >= 20:
+            subs.append(f"    {float(dead):.0f}% dead rows, past the point autovacuum "
+                        f"usually keeps up.")
+        out += [head] + subs
+
+    if rt:
+        stable = rt.get("runs_at_current_value")
+        lat = rt.get("mean_latency_ms")
+        if stable and int(stable) >= 2:
+            line = (f"  Search quality is unchanged across the last "
+                    f"{int(stable)} checks.")
+        else:
+            line = f"  Search quality moved on the last check. Worth a look."
+        if lat is not None:
+            line += f" Typical lookup {float(lat):.0f}ms."
+        out.append(line)
+
+    return ["PLM SYSTEM", ""] + out if out else []
+
+
 # ------------------------------------------------------------- where you stand
 # The only section measured against an OUTSIDE reference. Everything else in this
 # brief compares Rafa to targets he set himself, which can say whether he did what
@@ -498,6 +550,7 @@ SECTIONS = {
     "portfolio": section_portfolio,
     "market": section_market,
     "standing": section_standing,
+    "plm": section_plm,
     "outreach": section_outreach,
 }
 

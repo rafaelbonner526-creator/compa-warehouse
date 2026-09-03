@@ -19,6 +19,11 @@ sources:
       - name: lh_jst
       - name: lh_boe
       - name: lh_maddison
+      # PLM operational telemetry. Catalog aggregates and RAG eval metrics only:
+      # no patient data reaches this warehouse by construction. See
+      # ingestion/extract_plm_ops.py for why row-level export is excluded.
+      - name: plm_db_health
+      - name: plm_retrieval_runs
       - name: lh_imf_debt
       # Stripe (Ampwell revenue)
       - name: stripe_charges

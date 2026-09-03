@@ -16,6 +16,7 @@ type Data = {
   regime: Row | null;
   actions: Row[];
   bands: Row[];
+  baselines: Row[];
   refreshed_at: string | null;
 };
 
@@ -43,6 +44,85 @@ function Signal({ label, value, target, ok }: { label: string; value: string; ta
 function fmt(v: number, unit: string): string {
   if (unit === "$") return `$${Math.round(v).toLocaleString("en-US")}`;
   return `${v}${unit}`;
+}
+
+
+// Outside reference points. The morning brief gets one headline line from this;
+// the dashboard is where the full ladder belongs, because the useful question
+// ("what would the next rung cost") needs every tier visible at once.
+//
+// COMPARABILITY IS RENDERED, NOT HIDDEN. A Federal Reserve percentile and a
+// consulting-rate blog are not the same kind of fact and must not look the same.
+function Standing({ rows }: { rows: Row[] }) {
+  if (!rows?.length) return null;
+  const groups = new Map<string, Row[]>();
+  for (const r of rows) {
+    const k = String(r.metric_key);
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k)!.push(r);
+  }
+  const TIER: Record<string, string> = {
+    p50: "Median", p75: "Top 25%", p90: "Top 10%", p99: "Top 1%",
+    acceptable: "Acceptable", exceptional: "Exceptional",
+  };
+  return (
+    <Card>
+      <h2 className="text-sm font-semibold text-zinc-300">Where you stand</h2>
+      <p className="mt-1 text-xs text-zinc-500">
+        The only targets here that you did not set yourself.
+      </p>
+      {[...groups.entries()].map(([key, rs]) => {
+        const cur = rs[0].current_value == null ? null : Number(rs[0].current_value);
+        const chg = rs[0].change_90d == null ? null : Number(rs[0].change_90d);
+        const chgPct = rs[0].change_90d_pct == null ? null : Number(rs[0].change_90d_pct);
+        const weak = String(rs[0].comparability) !== "direct";
+        return (
+          <div key={key} className="mt-4 border-t border-zinc-800 pt-3 first:border-0 first:pt-0">
+            <div className="flex items-baseline justify-between">
+              <span className="text-xs uppercase tracking-wide text-zinc-400">
+                {key.replace(/_/g, " ")}
+              </span>
+              {cur != null && (
+                <span className="text-lg font-semibold text-zinc-100">
+                  {fmt(cur, "$")}
+                  {chg != null && (
+                    <span className="ml-2 text-xs font-normal" style={{ color: chg >= 0 ? GREEN : RED }}>
+                      {chg >= 0 ? "+" : ""}{fmt(chg, "$")}
+                      {chgPct != null && ` (${chgPct >= 0 ? "+" : ""}${chgPct}%)`} / 90d
+                    </span>
+                  )}
+                </span>
+              )}
+            </div>
+            <table className="mt-2 w-full text-xs">
+              <tbody>
+                {rs.map((r, i) => {
+                  const base = Number(r.baseline_value);
+                  const gap = r.gap_to_tier == null ? null : Number(r.gap_to_tier);
+                  const past = String(r.standing) === "at or above";
+                  return (
+                    <tr key={i} className="border-t border-zinc-800/60">
+                      <td className="py-1 text-zinc-400">{TIER[String(r.tier)] ?? String(r.tier)}</td>
+                      <td className="py-1 text-right text-zinc-300">{fmt(base, "$")}</td>
+                      <td className="py-1 text-right" style={{ color: past ? GREEN : "#a1a1aa" }}>
+                        {past ? "reached" : gap != null ? `${fmt(Math.abs(gap), "$")} to go` : "-"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <p className="mt-2 text-[11px] leading-snug text-zinc-500">
+              {String(rs[0].population)} &middot; {String(rs[0].source_name)} ({String(rs[0].as_of_year)})
+              {weak && (
+                <span style={{ color: AMBER }}> &middot; {String(rs[0].comparability)}: {String(rs[0].caution)}</span>
+              )}
+            </p>
+          </div>
+        );
+      })}
+    </Card>
+  );
 }
 
 type Action = { level: "high" | "med" | "ok"; text: string };
@@ -133,6 +213,8 @@ export default function Portfolio() {
         <h1 className="text-2xl font-semibold">Portfolio</h1>
         {refreshed && <span className="text-xs text-zinc-500">Last refreshed {refreshed} ET</span>}
       </div>
+
+      <Standing rows={d.baselines} />
       <p className="mt-1 text-sm text-zinc-500">Your holdings vs your ALTO framework. Signals, not advice. Nothing executes trades.</p>
 
       {/* next best actions */}
