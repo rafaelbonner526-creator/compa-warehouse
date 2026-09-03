@@ -14,6 +14,15 @@
 --
 -- TWO targets are emitted because they answer different questions:
 --   target_current   the target in force THIS month, for month-to-date pacing
+-- WHAT `status` ACTUALLY COMPARES, because it is easy to misread and was misread
+-- on 2026-09-02: it measures the TRAILING 3-MONTH AVERAGE spend against the target,
+-- NOT month-to-date. A category can therefore report status='over' while spend_mtd
+-- is 0, which is correct for what the column means and looks broken sitting next to
+-- spend_mtd in the same row. Education did exactly that on day 2 of the month.
+--
+-- If the question is "am I over budget THIS month", the honest test is
+-- projected_month > monthly_target, not this column. scripts/morning_digest.py asks
+-- it that way for exactly this reason.
 --   target_trailing  the average of the targets in force across each of the
 --                    trailing 3 complete months, so a target that changed inside
 --                    the comparison window is not compared against months it

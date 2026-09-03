@@ -34,11 +34,22 @@ avgs AS (
         coalesce(avg(spend), 0)  AS avg_spend
     FROM complete
 ),
+-- Targets carry effective_from / effective_to because they change: the lease moved
+-- from 1600 to a 2081 September stub to 1444 ongoing. Summing every row counted all
+-- THREE Housing entries, making total_target 7549 against 5706 of average income and
+-- producing a target savings rate of MINUS 32 percent, which the morning brief
+-- printed as "ahead of your -32% target".
+--
+-- mart_budget_vs_actual already filtered on effective dates. This model did not.
+-- Fixed 2026-09-02.
 targets AS (
     SELECT
         sum(monthly_target)                                              AS total_target,
         sum(CASE WHEN tier = 'flexible' THEN monthly_target ELSE 0 END)  AS flexible_target
     FROM {{ ref('budget_targets') }}
+    WHERE cast({{ try_cast_null('effective_from', 'date') }} as date) <= cast({{ today() }} as date)
+      AND coalesce(cast({{ try_cast_null('effective_to', 'date') }} as date),
+                   cast('2999-12-31' as date)) >= cast({{ today() }} as date)
 ),
 this_month AS (
     SELECT
@@ -50,9 +61,14 @@ this_month AS (
 flex_mtd AS (
     SELECT coalesce(sum(i.expense_amount), 0) AS flex_spent_mtd
     FROM {{ ref('int_transactions') }} i
+    -- Same effective-date filter. Without it a category with several target rows
+    -- joins once per row and multiplies its own spend.
     JOIN {{ ref('budget_targets') }} b ON b.category_group = i.category_group
     WHERE i.txn_date >= cast({{ dbt.date_trunc('month', today()) }} as date)
       AND b.tier = 'flexible'
+      AND cast({{ try_cast_null('b.effective_from', 'date') }} as date) <= cast({{ today() }} as date)
+      AND coalesce(cast({{ try_cast_null('b.effective_to', 'date') }} as date),
+                   cast('2999-12-31' as date)) >= cast({{ today() }} as date)
 )
 SELECT
     round(a.avg_income)                              AS avg_monthly_income,
