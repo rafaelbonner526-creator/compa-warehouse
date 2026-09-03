@@ -268,7 +268,15 @@ QUADRANT_PLAIN = {
 # last_loaded can be NULL (the pipeline-name mismatch documented in
 # mart_data_freshness). NULL is treated as NOT fresh, so an unknown stays silent
 # rather than being reported as a change.
-FRESH_LOAD_DAYS = 30
+# 7 days, chosen 2026-09-03. NOT derived: there have only ever been two
+# long-history loads (2026-08-20 and 2026-09-03), which is no distribution to
+# derive from, so this is a judgment and is recorded as one. The reasoning is the
+# asymmetry of the two failure modes. Too long and the same line becomes wallpaper
+# and the section stops being read, which is the specific thing this file's house
+# style exists to prevent. Too short and an event is missed -- but the brief runs
+# daily, so a week is seven chances to see it. Widen it if an event is ever missed;
+# do not delete the window, or a single change gets re-announced for a year.
+FRESH_LOAD_DAYS = 7
 
 CYCLE_SOURCES = ("IMF historical public debt", "Maddison Project (world output)")
 
